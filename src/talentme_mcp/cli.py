@@ -26,9 +26,9 @@ def load_config():
             return json.load(f)
     return {}
 
-def init_memory_structure(memory_path: str):
-    """Initialize the LLM Wiki structure in the specified path."""
-    click.echo(f"Initializing Memory at {memory_path}...", err=True)
+def init_memory_structure(memory_path: str, template_name: str = "llm-wiki"):
+    """Initialize the LLM Wiki structure and optionally fetch a specific template."""
+    click.echo(f"Initializing/Syncing Memory at {memory_path}...", err=True)
     
     # Core directories based on LLM Wiki pattern
     dirs = [
@@ -66,28 +66,35 @@ def init_memory_structure(memory_path: str):
         with open(log_path, 'w') as f:
             f.write("## Log\n\n")
             
-    # Try to fetch core llm-wiki skill from Cloud API
-    dest_skill = os.path.join(memory_path, ".skills", "llm-wiki")
+    # Try to fetch specified template from Cloud API
+    if not template_name:
+        return
+
+    dest_skill = os.path.join(memory_path, ".skills", template_name)
     
-    # We need api_url and license_key to fetch from cloud. 
-    # If not provided, we can't sync new templates, but existing ones remain.
     api_url = getattr(sys, '_talentme_api_url', None)
     license_key = getattr(sys, '_talentme_license_key', None)
 
-    if api_url and license_key and not os.path.exists(dest_skill):
+    if api_url and license_key:
         try:
             import requests
-            click.echo(f"[*] Fetching core protocol 'llm-wiki' from cloud...", err=True)
+            click.echo(f"[*] Fetching template '{template_name}' from cloud...", err=True)
             headers = {"Authorization": f"Bearer {license_key}"}
-            resp = requests.get(f"{api_url}/api/templates/get/llm-wiki", headers=headers, timeout=10)
+            resp = requests.get(f"{api_url}/api/templates/get/{template_name}", headers=headers, timeout=10)
             if resp.status_code == 200:
                 files = resp.json().get("files", {})
+                if not files:
+                    click.echo(f"Warning: Template '{template_name}' is empty or not found on server.", err=True)
+                    return
+                
+                # If template already exists, we should probably warn or handle it in the caller
+                # For simplicity here, we write files (overwrite individual files if they changed)
                 for rel_path, content in files.items():
                     full_dest = os.path.join(dest_skill, rel_path)
                     os.makedirs(os.path.dirname(full_dest), exist_ok=True)
                     with open(full_dest, 'w', encoding='utf-8') as f:
                         f.write(content)
-                click.echo(f"✅ Successfully installed llm-wiki protocol from cloud.", err=True)
+                click.echo(f"✅ Successfully installed/updated '{template_name}' from cloud.", err=True)
         except Exception as e:
             click.echo(f"Warning: Could not fetch cloud template: {e}", err=True)
 
@@ -97,13 +104,69 @@ def main():
     pass
 
 @main.command()
+@click.option('--memory', type=click.Path(), help='Path to your local memory directory.')
+@click.option('--api-url', type=str, default='https://api-talentme.airsota.com', help='URL of the TalentMe Cloud API.')
+@click.option('--license-key', type=str, default='test-key', help='Your TalentMe License Key.')
+def sync(memory, api_url, license_key):
+    """Interactively sync core protocols and templates from cloud to local memory."""
+    config = load_config()
+    memory_path = memory or config.get("memory_path")
+    if not memory_path:
+        click.echo("Error: No memory path provided and none remembered. Please run 'setup' first.")
+        return
+    
+    memory_path = os.path.abspath(os.path.expanduser(memory_path))
+    api_url = api_url or config.get("api_url")
+    license_key = license_key or config.get("license_key")
+
+    # Store API info in sys for init_memory_structure to pick up
+    sys._talentme_api_url = api_url
+    sys._talentme_license_key = license_key
+    
+    try:
+        import requests
+        click.echo(f"[*] Fetching available templates from {api_url}...", err=True)
+        headers = {"Authorization": f"Bearer {license_key}"}
+        resp = requests.get(f"{api_url}/api/templates/list", headers=headers, timeout=10)
+        if resp.status_code != 200:
+            click.echo(f"Error: Could not list templates ({resp.status_code})")
+            return
+            
+        templates = resp.json().get("templates", [])
+        if not templates:
+            click.echo("No templates found on cloud.")
+            return
+            
+        click.echo("\nAvailable Cloud Templates:")
+        for i, t in enumerate(templates):
+            status = " [installed]" if os.path.exists(os.path.join(memory_path, ".skills", t)) else ""
+            click.echo(f" {i+1}. {t}{status}")
+            
+        choice = click.prompt("\nWhich template would you like to sync? (Enter number or 'all', 'none' to cancel)", default="none")
+        
+        if choice == "none":
+            return
+        elif choice == "all":
+            for t in templates:
+                init_memory_structure(memory_path, t)
+        else:
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(templates):
+                    init_memory_structure(memory_path, templates[idx])
+                else:
+                    click.echo("Invalid choice.")
+            except ValueError:
+                click.echo("Invalid input.")
+                
+    except Exception as e:
+        click.echo(f"Sync failed: {e}")
+
+@main.command()
 def update():
     """Update TalentMe to the latest version via git."""
     click.echo("=== Updating TalentMe ===")
     try:
-        # Check if the current directory or parent is a git repo
-        # We assume the user is in the repo root or the package is installed in editable mode
-        # from a git repo.
         repo_dir = Path(__file__).parent.parent.parent
         if not (repo_dir / ".git").exists():
             click.echo("Error: This installation does not appear to be a git repository. Please install via 'git clone'.")
@@ -117,26 +180,16 @@ def update():
         
         click.echo("\n✅ Software successfully updated!")
         
-        # New: Auto-sync templates if config exists
+        # Now ask if they want to sync templates
         config = load_config()
-        if config.get("memory_path") and config.get("api_url"):
-            click.echo(f"\n[*] Detected local memory at: {config['memory_path']}")
-            click.echo("[*] Synchronizing cloud templates...")
-            
-            sys._talentme_api_url = config['api_url']
-            sys._talentme_license_key = config.get('license_key', 'test-key')
-            
-            # Force sync
-            dest_skill = os.path.join(config['memory_path'], ".skills", "llm-wiki")
-            if os.path.exists(dest_skill):
-                shutil.rmtree(dest_skill)
-            init_memory_structure(config['memory_path'])
-            click.echo("✅ Templates synchronized!")
+        if config.get("memory_path") and click.confirm("\nWould you like to sync/update cloud templates as well?"):
+            # Reuse the sync logic
+            ctx = click.get_current_context()
+            ctx.invoke(sync, memory=config["memory_path"])
             
         click.echo("\nPlease restart your MCP server/IDE.")
     except Exception as e:
         click.echo(f"Update failed: {e}")
-        click.echo("Please ensure 'git' is installed and you have network access.")
 
 @main.command()
 @click.option('--init-memory', type=click.Path(), help='Initialize or connect to a local memory directory.')
