@@ -1,1 +1,1 @@
-# No local data included. KB will be hosted on Cloud.
+recursive-include src/talentme_mcp/data *

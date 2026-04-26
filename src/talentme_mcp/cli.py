@@ -49,15 +49,17 @@ def init_memory_structure(memory_path: str):
         with open(log_path, 'w') as f:
             f.write("## Log\n\n")
             
-    # Copy core llm-wiki skill if available from user's reference
-    ref_skill = "/home/suiyaoc/second_brain/obsidian-wiki/.skills/llm-wiki"
+    # Copy core llm-wiki skill from package data to user memory
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    package_skill = os.path.join(base_dir, 'data', 'skills', 'llm-wiki')
     dest_skill = os.path.join(memory_path, ".skills", "llm-wiki")
-    if os.path.exists(ref_skill) and not os.path.exists(dest_skill):
+    
+    if os.path.exists(package_skill) and not os.path.exists(dest_skill):
         try:
-            shutil.copytree(ref_skill, dest_skill)
-            click.echo(f"Copied core llm-wiki skill to {dest_skill}", err=True)
+            shutil.copytree(package_skill, dest_skill)
+            click.echo(f"Installed core llm-wiki protocol to {dest_skill}", err=True)
         except Exception as e:
-            click.echo(f"Warning: Could not copy llm-wiki skill: {e}", err=True)
+            click.echo(f"Warning: Could not install llm-wiki skill: {e}", err=True)
 
 @click.group()
 def main():

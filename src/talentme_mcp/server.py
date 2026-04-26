@@ -14,8 +14,8 @@ def create_server(api_url: str, license_key: str, skills_path: str, memory_path:
     if memory_path:
         setup_user_log_skills(mcp, memory_path)
         setup_wiki_engine_skills(mcp, memory_path)
-        setup_agent_skills(mcp, skills_path, memory_path)
+        setup_agent_skills(mcp, skills_path, memory_path, api_url, license_key)
     else:
-        setup_agent_skills(mcp, skills_path)
+        setup_agent_skills(mcp, skills_path, api_url=api_url, license_key=license_key)
 
     return mcp
