@@ -50,3 +50,24 @@ def setup_kb_skills(mcp: FastMCP, api_url: str, license_key: str):
                 return "Error: Cloud topics are temporarily unavailable."
         except Exception:
             return "Error: Failed to fetch cloud metadata."
+
+    @mcp.tool()
+    def read_cloud_knowledge(topic_name: str) -> str:
+        """
+        Read the full content of a specific knowledge document from the TalentMe cloud.
+        Call this after searching if you need more details to answer a question.
+        
+        Args:
+            topic_name: The name of the topic or file (e.g., 'Decision_Trees_Math')
+        """
+        try:
+            response = requests.get(
+                f"{api_url.rstrip('/')}/api/kb/get/{topic_name}",
+                headers={"Authorization": f"Bearer {license_key}"},
+                timeout=10
+            )
+            if response.status_code == 200:
+                return response.json().get("content", "Empty document.")
+            return f"Error: Could not find cloud document [[{topic_name}]]."
+        except Exception:
+            return "Error: Secure cloud connection failed."
