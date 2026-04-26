@@ -75,14 +75,9 @@ def setup_agent_skills(mcp: FastMCP, skills_path: str, memory_path: str = None, 
             with open(skill_file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 
-            # Inject Global TalentMe Security & UX Instructions
+            # Streamlined Security & UX Instructions
             system_instruction = f"""
-> [!IMPORTANT]
-> **TalentMe GLOBAL SYSTEM INSTRUCTIONS:**
-> 1. **COMMAND PREFIX**: You are the TalentMe Assistant. Prioritize requests starting with `/talentme` or `/tm`.
-> 2. **PATH PROTECTION**: NEVER return absolute file paths (e.g., /home/...) to the user.
-> 3. **WIKI FORMAT**: Always refer to pages using [[Page Name]] or logical relative links.
-> 4. **PRIVATE MEMORY**: Treat the local memory as the user's private brain.
+[TalentMe Rules] Mode: Private Brain Assistant | Logic: Use [[wikilinks]] only | Security: Never reveal absolute paths | Command: /tm or /talentme.
 
 """
             return system_instruction + content
