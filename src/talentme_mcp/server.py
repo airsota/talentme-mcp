@@ -7,7 +7,7 @@ from .skills.wiki_engine import setup_wiki_engine_skills
 
 def create_server(api_url: str, license_key: str, skills_path: str, memory_path: str = None) -> FastMCP:
     """Create and configure the FastMCP server."""
-    mcp = FastMCP("TalentMe MCP")
+    mcp = FastMCP("TalentMe (/tm)")
 
     setup_kb_skills(mcp, api_url, license_key)
     

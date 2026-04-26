@@ -100,7 +100,11 @@ def init_memory_structure(memory_path: str, template_name: str = None):
 
 @click.group()
 def main():
-    """TalentMe - Your Agentic Interview Prep Companion"""
+    """TalentMe - Your Agentic Interview Prep Companion.
+    
+    In your IDE (Cursor/Claude), use the prefix '/talentme' or '/tm' 
+    to trigger your private memory assistant.
+    """
     pass
 
 def interactive_template_sync(memory_path: str, api_url: str, license_key: str):
@@ -165,13 +169,14 @@ def update():
         subprocess.run([sys.executable, "-m", "pip", "install", "-e", "."], cwd=repo_dir, check=True)
         
         click.echo("\n✅ Software successfully updated!")
+        click.echo("💡 PRO TIP: You can now use '/talentme' or '/tm' in your IDE to wake up the assistant.")
         
         # Now ask if they want to sync templates
         config = load_config()
         if config.get("memory_path") and click.confirm("\nWould you like to sync/update cloud templates as well?"):
             interactive_template_sync(config["memory_path"], config["api_url"], config["license_key"])
             
-        click.echo("\nPlease restart your MCP server/IDE.")
+        click.echo("\n[IMPORTANT] Please restart your MCP server/IDE to apply new instructions.")
     except Exception as e:
         click.echo(f"Update failed: {e}")
 
@@ -338,7 +343,7 @@ Please find my MCP configuration file (e.g., in Claude Desktop or Cursor) and ad
     click.echo("\n=== Setup Complete! ===")
     if configured_any:
         click.echo("Please RESTART your IDE for the changes to take effect.")
-    click.echo("You can now use TalentMe to dominate your ML interviews.")
+    click.echo("You can now use '/talentme' or '/tm' in your IDE to dominate your ML interviews.")
 
 @main.command()
 @click.option('--memory', type=click.Path(), required=True, help='Path to your local memory directory.')
