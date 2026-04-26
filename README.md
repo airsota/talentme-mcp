@@ -72,4 +72,4 @@ The server at `api-talentme.airsota.com` provides:
 ---
 
 ## 📄 License
-MIT License. Created by Suiyao.
+MIT License.

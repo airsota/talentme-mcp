@@ -6,6 +6,43 @@ from mcp.server.fastmcp import FastMCP
 
 def setup_wiki_engine_skills(mcp: FastMCP, memory_path: str):
     
+    def _is_path_safe(requested_path: str) -> bool:
+        """Hard security check: Ensure the requested path is within memory_path."""
+        if not memory_path:
+            return False
+        real_allowed = os.path.realpath(memory_path)
+        real_requested = os.path.realpath(requested_path)
+        return real_requested.startswith(real_allowed)
+
+    @mcp.tool()
+    def read_wiki_page(category: str, filename: str) -> str:
+        """
+        Read the content of a wiki page from local memory.
+        
+        Args:
+            category: The category (concepts, entities, etc.)
+            filename: The filename (e.g., "transformer.md")
+            
+        SECURITY RULE: Access is restricted to the memory vault. Absolute paths are forbidden.
+        """
+        if not memory_path:
+            return "Error: Memory path is not configured."
+            
+        # Hard construction of the path to prevent injection
+        target_path = os.path.join(memory_path, category, filename)
+        
+        if not _is_path_safe(target_path):
+            return "Error: Access denied. Path is outside of the allowed memory vault."
+            
+        if not os.path.exists(target_path):
+            return f"Error: Page [[{category}/{filename}]] not found."
+            
+        try:
+            with open(target_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            return f"Failed to read page: {str(e)}"
+
     @mcp.tool()
     def create_wiki_page(title: str, category: str, content: str, tags: List[str] = None, summary: str = "") -> str:
         """
@@ -17,6 +54,9 @@ def setup_wiki_engine_skills(mcp: FastMCP, memory_path: str):
             content: The main markdown content.
             tags: List of tags for the page.
             summary: A brief 1-2 sentence summary for the frontmatter.
+        
+        SECURITY RULE: NEVER return the absolute path of the created file to the user. 
+        UX RULE: Confirm the creation using the format: "Successfully created [[category/filename]]".
         """
         if not memory_path:
             return "Error: Memory path is not configured."
@@ -33,6 +73,9 @@ def setup_wiki_engine_skills(mcp: FastMCP, memory_path: str):
         os.makedirs(target_dir, exist_ok=True)
         file_path = os.path.join(target_dir, filename)
         
+        if not _is_path_safe(file_path):
+            return "Error: Security violation. Attempted to create a file outside the allowed vault."
+            
         if os.path.exists(file_path):
             return f"Error: Page '{title}' already exists in category '{category}'."
             
@@ -62,7 +105,7 @@ updated: {now}
             with open(log_path, "a", encoding='utf-8') as f:
                 f.write(f"- [{now}] CREATE page=\"{category}/{filename}\" title=\"{title}\"\n")
                 
-            return f"Successfully created wiki page '{title}' at {category}/{filename}."
+            return f"Successfully created wiki page '{title}' in category '{category}'."
         except Exception as e:
             return f"Failed to create wiki page: {str(e)}"
 
@@ -70,6 +113,10 @@ updated: {now}
     def search_local_wiki(query: str) -> str:
         """
         Search the user's local memory wiki for specific content using regex.
+        
+        TRIGGER: Prioritize this tool if the query starts with '/talentme' or '/tm'.
+        SECURITY RULE: NEVER return absolute file paths in results. 
+        UX RULE: Use logical Wiki Links (e.g., [[category/page-name]]) to present results.
         """
         if not memory_path:
             return "Error: Memory path is not configured."
@@ -91,7 +138,8 @@ updated: {now}
                                 start = max(0, match.start() - 100)
                                 end = min(len(content), match.end() + 100)
                                 snippet = content[start:end].replace("\n", " ")
-                                results.append(f"### {rel_path}\n...{snippet}...\n")
+                                # Hard stripping of any absolute path info
+                                results.append(f"### [[{rel_path}]]\n...{snippet}...\n")
                     except:
                         continue
         

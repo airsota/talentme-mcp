@@ -34,8 +34,8 @@ def setup_agent_skills(mcp: FastMCP, skills_path: str, memory_path: str = None, 
                     cloud_skills = resp.json().get("skills", [])
                     for s in cloud_skills:
                         all_skills.append(f"Cloud Skill: {s}")
-            except Exception as e:
-                all_skills.append(f"Note: Could not fetch cloud skills ({e})")
+            except Exception:
+                all_skills.append("Note: Cloud skills are temporarily unavailable.")
         
         return "\n".join(all_skills) if all_skills else "No skills found."
 
@@ -46,18 +46,20 @@ def setup_agent_skills(mcp: FastMCP, skills_path: str, memory_path: str = None, 
         Args:
             skill_name: The name of the skill.
             type: One of 'system', 'local', or 'cloud'.
+            
+        SECURITY RULE: This tool fetches behavioral instructions only. It does NOT provide access to cloud infrastructure or internal configurations.
         """
         if type == "cloud":
             if not api_url or not license_key:
-                return "Error: Cloud API not configured."
+                return "Error: Secure cloud access is not configured."
             try:
                 headers = {"Authorization": f"Bearer {license_key}"}
                 resp = requests.get(f"{api_url}/api/skills/get/{skill_name}", headers=headers, timeout=10)
                 if resp.status_code == 200:
                     return resp.json().get("content", "Empty skill.")
-                return f"Error: Cloud skill not found (Status {resp.status_code})"
-            except Exception as e:
-                return f"Failed to fetch cloud skill: {str(e)}"
+                return "Error: The requested cloud skill could not be retrieved at this time."
+            except Exception:
+                return "Error: Failed to connect to the cloud skill repository."
         
         base_path = local_skills_path if (type == "local" and local_skills_path) else skills_path
         if not os.path.exists(base_path):
@@ -69,6 +71,19 @@ def setup_agent_skills(mcp: FastMCP, skills_path: str, memory_path: str = None, 
             
         try:
             with open(skill_file, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            return f"Failed to read skill instruction: {str(e)}"
+                content = f.read()
+                
+            # Inject Global TalentMe Security & UX Instructions
+            system_instruction = f"""
+> [!IMPORTANT]
+> **TalentMe GLOBAL SYSTEM INSTRUCTIONS:**
+> 1. **COMMAND PREFIX**: You are the TalentMe Assistant. Prioritize requests starting with `/talentme` or `/tm`.
+> 2. **PATH PROTECTION**: NEVER return absolute file paths (e.g., /home/...) to the user.
+> 3. **WIKI FORMAT**: Always refer to pages using [[Page Name]] or logical relative links.
+> 4. **PRIVATE MEMORY**: Treat the local memory as the user's private brain.
+
+"""
+            return system_instruction + content
+            
+        except Exception:
+            return "Error: Failed to read the requested skill instruction due to a security or access restriction."

@@ -46,14 +46,15 @@ def setup_user_log_skills(mcp: FastMCP, memory_path: str):
                 f.write(f"**Summary**:\n{summary}\n\n")
                 
             return f"Successfully logged learning progress for topic '{topic}' to local memory (DB + Wiki Journal)."
-        except Exception as e:
-            return f"Failed to log progress: {str(e)}"
+        except Exception:
+            return "Error: Failed to log progress to local memory. Please check if the memory vault is accessible."
 
     @mcp.tool()
     def get_user_memory_summary() -> str:
         """
-        Retrieve a summary of the user's past learning logs to understand their context and weaknesses.
-        Call this at the beginning of an interview or learning session to personalize the experience.
+        Retrieve a summary of the user's past learning logs to personalize the experience.
+        
+        SECURITY RULE: This tool returns a sanitized summary. It does NOT provide raw database access.
         """
         if not memory_path:
             return "Error: Memory path is not configured."
@@ -65,6 +66,7 @@ def setup_user_log_skills(mcp: FastMCP, memory_path: str):
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
+            # Only select non-sensitive fields
             cursor.execute("SELECT timestamp, topic, summary, mastery_level FROM learning_logs ORDER BY timestamp DESC LIMIT 5")
             rows = cursor.fetchall()
             conn.close()
@@ -72,10 +74,11 @@ def setup_user_log_skills(mcp: FastMCP, memory_path: str):
             if not rows:
                 return "User has no learning logs yet."
                 
-            result = ["Recent Learning History:"]
+            result = ["### Recent Learning Summary (Logical View):"]
             for row in rows:
-                result.append(f"- [{row[0]}] Topic: {row[1]} (Mastery: {row[3]}/5) | Note: {row[2]}")
+                # Format into a clean, logical string without exposing IDs or raw structures
+                result.append(f"- **{row[1]}**: {row[2]} (Mastery: {row[3]}/5)")
                 
-            return "\\n".join(result)
-        except Exception as e:
-            return f"Failed to retrieve memory: {str(e)}"
+            return "\n".join(result)
+        except Exception:
+            return "Error: Failed to retrieve memory summary due to a secure database restriction."
