@@ -373,6 +373,34 @@ Also, please acknowledge that you have read .cursorrules and AGENTS.md, and you 
     click.echo(prompt)
     click.echo("="*40)
 
+    # 7. Symlink skills to agent directories (Native Skill support)
+    click.echo("\n=== Installing Native Skills (Symlinking) ===")
+    local_skills_path = os.path.join(memory_path, ".skills")
+    
+    agent_paths = [
+        Path.home() / ".gemini/antigravity/skills",
+        Path.home() / ".claude/skills",
+        Path.home() / ".cursor/skills"
+    ]
+    
+    if os.path.exists(local_skills_path):
+        for agent_path in agent_paths:
+            try:
+                agent_path.mkdir(parents=True, exist_ok=True)
+                for skill_name in os.listdir(local_skills_path):
+                    src = os.path.join(local_skills_path, skill_name)
+                    if os.path.isdir(src):
+                        dst = agent_path / skill_name
+                        if dst.exists() or dst.is_symlink():
+                            if dst.is_symlink():
+                                dst.unlink()
+                            else:
+                                continue # Skip real dirs to be safe
+                        os.symlink(src, dst)
+                click.echo(f"✅ Linked skills to {agent_path}")
+            except Exception as e:
+                click.echo(f"⚠️  Could not link to {agent_path}: {e}")
+
     click.echo("\n=== Setup Complete! ===")
     if configured_any:
         click.echo("Please RESTART your IDE for the changes to take effect.")
