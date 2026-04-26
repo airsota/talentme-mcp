@@ -49,17 +49,30 @@ def init_memory_structure(memory_path: str):
         with open(log_path, 'w') as f:
             f.write("## Log\n\n")
             
-    # Copy core llm-wiki skill from package data to user memory
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    package_skill = os.path.join(base_dir, 'data', 'skills', 'llm-wiki')
+    # Try to fetch core llm-wiki skill from Cloud API
     dest_skill = os.path.join(memory_path, ".skills", "llm-wiki")
     
-    if os.path.exists(package_skill) and not os.path.exists(dest_skill):
+    # We need api_url and license_key to fetch from cloud. 
+    # If not provided, we can't sync new templates, but existing ones remain.
+    api_url = getattr(sys, '_talentme_api_url', None)
+    license_key = getattr(sys, '_talentme_license_key', None)
+
+    if api_url and license_key and not os.path.exists(dest_skill):
         try:
-            shutil.copytree(package_skill, dest_skill)
-            click.echo(f"Installed core llm-wiki protocol to {dest_skill}", err=True)
+            import requests
+            click.echo(f"[*] Fetching core protocol 'llm-wiki' from cloud...", err=True)
+            headers = {"Authorization": f"Bearer {license_key}"}
+            resp = requests.get(f"{api_url}/api/templates/get/llm-wiki", headers=headers, timeout=10)
+            if resp.status_code == 200:
+                files = resp.json().get("files", {})
+                for rel_path, content in files.items():
+                    full_dest = os.path.join(dest_skill, rel_path)
+                    os.makedirs(os.path.dirname(full_dest), exist_ok=True)
+                    with open(full_dest, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                click.echo(f"✅ Successfully installed llm-wiki protocol from cloud.", err=True)
         except Exception as e:
-            click.echo(f"Warning: Could not install llm-wiki skill: {e}", err=True)
+            click.echo(f"Warning: Could not fetch cloud template: {e}", err=True)
 
 @click.group()
 def main():
@@ -100,10 +113,13 @@ def start(init_memory, api_url, license_key):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     skills_path = os.path.join(base_dir, 'data', 'skills')
     
+    # Store API info in sys for init_memory_structure to pick up
+    sys._talentme_api_url = api_url
+    sys._talentme_license_key = license_key
+
     # 2. Handle Memory Initialization or Sync
     if init_memory:
         init_memory = os.path.abspath(os.path.expanduser(init_memory))
-        # This will create dirs AND copy missing llm-wiki
         init_memory_structure(init_memory)
     
     # 3. Double check core llm-wiki protocol (even if not initializing)
@@ -132,6 +148,10 @@ def setup():
     api_url = click.prompt("Cloud API URL", default="http://localhost:8000")
     license_key = click.prompt("Your License Key", default="test-key")
     
+    # Store API info in sys for init_memory_structure to pick up
+    sys._talentme_api_url = api_url
+    sys._talentme_license_key = license_key
+
     # 3. Create Memory Directory and Wiki Structure
     init_memory_structure(memory_path)
     
