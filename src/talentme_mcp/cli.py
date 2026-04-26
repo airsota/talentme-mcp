@@ -19,12 +19,25 @@ def save_config(memory_path, api_url, license_key):
     }
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=2)
+    # SECURITY: Restrict file permissions to current user only (600)
+    os.chmod(CONFIG_FILE, 0o600)
 
 def load_config():
+    # Priority: Environment variables -> Config file
+    config = {}
     if CONFIG_FILE.exists():
         with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
-    return {}
+            config = json.load(f)
+    
+    # Override with env vars if present for production safety
+    if os.environ.get("TALENTME_LICENSE_KEY"):
+        config["license_key"] = os.environ.get("TALENTME_LICENSE_KEY")
+    if os.environ.get("TALENTME_API_URL"):
+        config["api_url"] = os.environ.get("TALENTME_API_URL")
+    if os.environ.get("TALENTME_MEMORY_PATH"):
+        config["memory_path"] = os.environ.get("TALENTME_MEMORY_PATH")
+        
+    return config
 
 def init_memory_structure(memory_path: str, template_name: str = None):
     """Initialize the LLM Wiki structure and optionally fetch a specific template."""
@@ -206,36 +219,32 @@ def start(init_memory, api_url, license_key):
     """Start the TalentMe MCP Server."""
     config = load_config()
     
-    # Use config as fallback, but flags override config
-    init_memory = init_memory or config.get("memory_path")
-    api_url = api_url or config.get("api_url", "https://api-talentme.airsota.com")
-    license_key = license_key or config.get("license_key", "test-key")
+    # Priority: Flag > Config > Default
+    final_memory = init_memory or config.get("memory_path")
+    final_api = api_url or config.get("api_url", "https://api-talentme.airsota.com")
+    final_key = license_key or config.get("license_key", "test-key")
 
-    # Save current settings as new default
-    if init_memory:
-        save_config(init_memory, api_url, license_key)
+    if not final_memory:
+        click.echo("Error: No memory path provided. Please run 'setup' or use --init-memory.")
+        return
+
+    final_memory = os.path.abspath(os.path.expanduser(final_memory))
 
     # 1. Resolve internal skills path
     base_dir = os.path.dirname(os.path.abspath(__file__))
     skills_path = os.path.join(base_dir, 'data', 'skills')
     
-    # Store API info in sys for init_memory_structure to pick up
-    sys._talentme_api_url = api_url
-    sys._talentme_license_key = license_key
+    # Store API info in sys for tools to pick up
+    sys._talentme_api_url = final_api
+    sys._talentme_license_key = final_key
 
-    # 2. Handle Memory Initialization (Silent, no template fetch)
-    if init_memory:
-        init_memory = os.path.abspath(os.path.expanduser(init_memory))
-        init_memory_structure(init_memory, template_name=None)
+    # 2. Handle Memory Initialization (Silent)
+    init_memory_structure(final_memory, template_name=None)
     
-    # 3. Check core llm-wiki protocol (JUST WARN, DON'T FETCH)
-    if init_memory and os.path.exists(init_memory):
-        dest_skill = os.path.join(init_memory, ".skills", "llm-wiki")
-        if not os.path.exists(dest_skill):
-            click.echo(f"[*] Note: Optional protocol 'llm-wiki' is missing. Run 'talentme sync' if you need wiki features.", err=True)
-
-    click.echo(f"Starting TalentMe MCP Server connected to Cloud API: {api_url}", err=True)
-    mcp_server = create_server(api_url, license_key, skills_path, init_memory)
+    click.echo(f"[*] TalentMe MCP Server starting...", err=True)
+    click.echo(f"[*] Memory: {final_memory}", err=True)
+    
+    mcp_server = create_server(final_api, final_key, skills_path, final_memory)
     mcp_server.run()
 
 @main.command()
@@ -269,12 +278,7 @@ def setup():
     mcp_config = {
         "talentme": {
             "command": talentme_path,
-            "args": [
-                "start",
-                "--init-memory", memory_path,
-                "--api-url", api_url,
-                "--license-key", license_key
-            ]
+            "args": ["start"] # SECURE: No sensitive arguments passed here
         }
     }
     

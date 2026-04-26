@@ -40,44 +40,31 @@ def setup_wiki_engine_skills(mcp: FastMCP, memory_path: str):
         try:
             with open(target_path, 'r', encoding='utf-8') as f:
                 return f.read()
-        except Exception as e:
-            return f"Failed to read page: {str(e)}"
+        except Exception:
+            return "Error: Failed to read page due to a secure file access restriction."
 
     @mcp.tool()
     def create_wiki_page(title: str, category: str, content: str, tags: List[str] = None, summary: str = "") -> str:
         """
-        Create a new wiki page in the local memory.
-        
-        Args:
-            title: The title of the page (e.g., "Transformer Architecture")
-            category: The category (concepts, entities, skills, references, synthesis)
-            content: The main markdown content.
-            tags: List of tags for the page.
-            summary: A brief 1-2 sentence summary for the frontmatter.
-        
-        SECURITY RULE: NEVER return the absolute path of the created file to the user. 
-        UX RULE: Confirm the creation using the format: "Successfully created [[category/filename]]".
+        Create a new wiki page in the local memory vault.
         """
         if not memory_path:
             return "Error: Memory path is not configured."
             
         valid_categories = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects"]
         if category not in valid_categories:
-            return f"Error: Invalid category '{category}'. Valid categories are: {', '.join(valid_categories)}"
+            return "Error: Access to this category is restricted."
             
         # Sanitize filename
         filename = title.lower().replace(" ", "-").replace("/", "-") + ".md"
-        
-        # Determine path
         target_dir = os.path.join(memory_path, category)
-        os.makedirs(target_dir, exist_ok=True)
         file_path = os.path.join(target_dir, filename)
         
         if not _is_path_safe(file_path):
-            return "Error: Security violation. Attempted to create a file outside the allowed vault."
+            return "Error: Security violation. Attempted to escape the memory vault."
             
         if os.path.exists(file_path):
-            return f"Error: Page '{title}' already exists in category '{category}'."
+            return "Error: This document already exists."
             
         # Build frontmatter
         tags_str = f"[{', '.join(tags)}]" if tags else "[]"
@@ -97,73 +84,58 @@ updated: {now}
 {content}
 """
         try:
+            os.makedirs(target_dir, exist_ok=True)
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(frontmatter)
-                
-            # Log to wiki log.md
-            log_path = os.path.join(memory_path, "log.md")
-            with open(log_path, "a", encoding='utf-8') as f:
-                f.write(f"- [{now}] CREATE page=\"{category}/{filename}\" title=\"{title}\"\n")
-                
-            return f"Successfully created wiki page '{title}' in category '{category}'."
-        except Exception as e:
-            return f"Failed to create wiki page: {str(e)}"
+            return f"Successfully created wiki page [[{category}/{filename}]]."
+        except Exception:
+            return "Error: Failed to write file."
 
     @mcp.tool()
     def search_local_wiki(query: str) -> str:
         """
-        Search the user's local memory wiki for specific content using regex.
-        
-        TRIGGER: Prioritize this tool if the query starts with '/talentme' or '/tm'.
-        SECURITY RULE: NEVER return absolute file paths in results. 
-        UX RULE: Use logical Wiki Links (e.g., [[category/page-name]]) to present results.
+        Search the user's local memory vault.
         """
         if not memory_path:
-            return "Error: Memory path is not configured."
+            return "Error: Memory path not found."
             
         results = []
-        for root, _, files in os.walk(memory_path):
-            if ".skills" in root or "_meta" in root or "_raw" in root:
-                continue
-            for file in files:
-                if file.endswith(".md") and file != "log.md":
-                    path = os.path.join(root, file)
-                    try:
+        try:
+            for root, _, files in os.walk(memory_path):
+                if not _is_path_safe(root):
+                    continue
+                if any(x in root for x in [".skills", "_meta", "_raw"]):
+                    continue
+                for file in files:
+                    if file.endswith(".md"):
+                        path = os.path.join(root, file)
                         with open(path, 'r', encoding='utf-8') as f:
                             content = f.read()
                             if re.search(query, content, re.IGNORECASE):
                                 rel_path = os.path.relpath(path, memory_path)
-                                # Extract a small snippet
-                                match = re.search(query, content, re.IGNORECASE)
-                                start = max(0, match.start() - 100)
-                                end = min(len(content), match.end() + 100)
-                                snippet = content[start:end].replace("\n", " ")
-                                # Hard stripping of any absolute path info
-                                results.append(f"### [[{rel_path}]]\n...{snippet}...\n")
-                    except:
-                        continue
+                                results.append(f"### [[{rel_path}]]")
+        except Exception:
+            return "Error: Search failed due to a security restriction."
         
-        if not results:
-            return f"No matches found for '{query}' in local memory."
-            
-        return f"Found {len(results)} matches in local memory:\n\n" + "\n".join(results[:10])
+        return "\n".join(results[:10]) if results else "No matches found."
 
     @mcp.tool()
     def list_local_wiki_pages(category: Optional[str] = None) -> str:
         """
-        List all pages in the user's local wiki memory, optionally filtered by category.
+        List pages in the memory vault.
         """
         if not memory_path:
-            return "Error: Memory path is not configured."
+            return "Error: Vault path not set."
             
         pages = []
-        target_dirs = [category] if category else ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects"]
+        valid_categories = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects"]
+        target_dirs = [category] if (category and category in valid_categories) else valid_categories
         
         for d in target_dirs:
             d_path = os.path.join(memory_path, d)
-            if os.path.exists(d_path):
+            if os.path.exists(d_path) and _is_path_safe(d_path):
                 for file in os.listdir(d_path):
                     if file.endswith(".md"):
                         pages.append(f"- [[{d}/{file}]]")
                         
-        return f"Local Wiki Pages:\n\n" + "\n".join(pages) if pages else "No local wiki pages found yet."
+        return "\n".join(pages) if pages else "No accessible documents found."
