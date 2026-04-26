@@ -238,3 +238,32 @@ Please find my MCP configuration file (e.g., in Claude Desktop or Cursor) and ad
     if configured_any:
         click.echo("Please RESTART your IDE for the changes to take effect.")
     click.echo("You can now use TalentMe to dominate your ML interviews.")
+
+@main.command()
+@click.option('--memory', type=click.Path(), required=True, help='Path to your local memory directory.')
+@click.option('--api-url', type=str, default='https://api-talentme.airsota.com', help='URL of the TalentMe Cloud API.')
+@click.option('--license-key', type=str, default='test-key', help='Your TalentMe License Key.')
+def sync(memory, api_url, license_key):
+    """Force sync core protocols and templates from cloud to local memory."""
+    memory_path = os.path.abspath(os.path.expanduser(memory))
+    if not os.path.exists(memory_path):
+        click.echo(f"Error: Memory path {memory_path} does not exist. Please run 'setup' first.")
+        return
+
+    # Store API info in sys for init_memory_structure to pick up
+    sys._talentme_api_url = api_url
+    sys._talentme_license_key = license_key
+    
+    click.echo(f"=== Syncing templates for {memory_path} ===")
+    
+    # We want to force sync, so we temporarily remove the local llm-wiki if it exists
+    # but only if it's a protocol (we don't want to delete user data, but .skills/llm-wiki is a protocol)
+    dest_skill = os.path.join(memory_path, ".skills", "llm-wiki")
+    if os.path.exists(dest_skill):
+        shutil.rmtree(dest_skill)
+        
+    init_memory_structure(memory_path)
+    click.echo("Done!")
+
+if __name__ == "__main__":
+    main()
