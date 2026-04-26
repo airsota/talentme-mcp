@@ -26,7 +26,7 @@ def load_config():
             return json.load(f)
     return {}
 
-def init_memory_structure(memory_path: str, template_name: str = "llm-wiki"):
+def init_memory_structure(memory_path: str, template_name: str = None):
     """Initialize the LLM Wiki structure and optionally fetch a specific template."""
     click.echo(f"Initializing/Syncing Memory at {memory_path}...", err=True)
     
@@ -66,7 +66,7 @@ def init_memory_structure(memory_path: str, template_name: str = "llm-wiki"):
         with open(log_path, 'w') as f:
             f.write("## Log\n\n")
             
-    # Try to fetch specified template from Cloud API
+    # Try to fetch specified template from Cloud API (ONLY if requested)
     if not template_name:
         return
 
@@ -221,13 +221,11 @@ def start(init_memory, api_url, license_key):
         init_memory = os.path.abspath(os.path.expanduser(init_memory))
         init_memory_structure(init_memory)
     
-    # 3. Double check core llm-wiki protocol (even if not initializing)
+    # 3. Check core llm-wiki protocol (JUST WARN, DON'T FETCH)
     if init_memory and os.path.exists(init_memory):
-        package_skill = os.path.join(skills_path, 'llm-wiki')
         dest_skill = os.path.join(init_memory, ".skills", "llm-wiki")
-        if os.path.exists(package_skill) and not os.path.exists(dest_skill):
-            click.echo(f"[*] Found missing core protocol. Syncing to {dest_skill}...", err=True)
-            shutil.copytree(package_skill, dest_skill)
+        if not os.path.exists(dest_skill):
+            click.echo(f"[*] Note: Core protocol 'llm-wiki' is missing in {init_memory}. AI wiki features may be limited. Run 'talentme sync' to install it.", err=True)
 
     click.echo(f"Starting TalentMe MCP Server connected to Cloud API: {api_url}", err=True)
     mcp_server = create_server(api_url, license_key, skills_path, init_memory)
@@ -255,7 +253,10 @@ def setup():
     sys._talentme_license_key = license_key
 
     # 3. Create Memory Directory and Wiki Structure
-    init_memory_structure(memory_path)
+    init_memory_structure(memory_path, template_name=None)
+    
+    if click.confirm("\nWould you like to download the core LLM Wiki protocol (llm-wiki) to your memory?"):
+        init_memory_structure(memory_path, template_name="llm-wiki")
     
     # 4. Configure IDEs
     talentme_path = sys.executable.replace("python", "talentme") # Heuristic for venv bin
