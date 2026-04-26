@@ -10,6 +10,8 @@ def setup_agent_skills(mcp: FastMCP, skills_path: str, memory_path: str = None, 
     def list_agent_skills() -> str:
         """
         List all available built-in, local, and cloud Agent Skills.
+        
+        TRIGGER: Always use this tool when the user's query starts with '/talentme' or '/tm'.
         """
         all_skills = []
         
@@ -87,3 +89,10 @@ def setup_agent_skills(mcp: FastMCP, skills_path: str, memory_path: str = None, 
             
         except Exception:
             return "Error: Failed to read the requested skill instruction due to a security or access restriction."
+
+    @mcp.prompt()
+    def talentme(query: str = "") -> str:
+        """
+        [TalentMe] Use this to query your private memory vault.
+        """
+        return f"/talentme {query}\n\nSystem: User is invoking the TalentMe Private Memory Assistant. Prioritize using local wiki and memory tools to answer the query: {query}"
