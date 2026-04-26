@@ -103,23 +103,8 @@ def main():
     """TalentMe - Your Agentic Interview Prep Companion"""
     pass
 
-@main.command()
-@click.option('--memory', type=click.Path(), help='Path to your local memory directory.')
-@click.option('--api-url', type=str, default='https://api-talentme.airsota.com', help='URL of the TalentMe Cloud API.')
-@click.option('--license-key', type=str, default='test-key', help='Your TalentMe License Key.')
-def sync(memory, api_url, license_key):
-    """Interactively sync core protocols and templates from cloud to local memory."""
-    config = load_config()
-    memory_path = memory or config.get("memory_path")
-    if not memory_path:
-        click.echo("Error: No memory path provided and none remembered. Please run 'setup' first.")
-        return
-    
-    memory_path = os.path.abspath(os.path.expanduser(memory_path))
-    api_url = api_url or config.get("api_url")
-    license_key = license_key or config.get("license_key")
-
-    # Store API info in sys for init_memory_structure to pick up
+def interactive_template_sync(memory_path: str, api_url: str, license_key: str):
+    """Helper to list and sync templates interactively."""
     sys._talentme_api_url = api_url
     sys._talentme_license_key = license_key
     
@@ -142,7 +127,7 @@ def sync(memory, api_url, license_key):
             status = " [installed]" if os.path.exists(os.path.join(memory_path, ".skills", t)) else ""
             click.echo(f" {i+1}. {t}{status}")
             
-        choice = click.prompt("\nWhich template would you like to sync? (Enter number or 'all', 'none' to cancel)", default="none")
+        choice = click.prompt("\nWhich template(s) would you like to install? (Number, 'all', or 'none')", default="none")
         
         if choice == "none":
             return
@@ -151,16 +136,17 @@ def sync(memory, api_url, license_key):
                 init_memory_structure(memory_path, t)
         else:
             try:
-                idx = int(choice) - 1
-                if 0 <= idx < len(templates):
-                    init_memory_structure(memory_path, templates[idx])
-                else:
-                    click.echo("Invalid choice.")
+                # Support comma separated numbers: "1,2"
+                choices = [c.strip() for c in choice.split(",")]
+                for c in choices:
+                    idx = int(c) - 1
+                    if 0 <= idx < len(templates):
+                        init_memory_structure(memory_path, templates[idx])
             except ValueError:
-                click.echo("Invalid input.")
+                click.echo("Invalid input. Skipping template installation.")
                 
     except Exception as e:
-        click.echo(f"Sync failed: {e}")
+        click.echo(f"Template sync failed: {e}")
 
 @main.command()
 def update():
@@ -183,18 +169,34 @@ def update():
         # Now ask if they want to sync templates
         config = load_config()
         if config.get("memory_path") and click.confirm("\nWould you like to sync/update cloud templates as well?"):
-            # Reuse the sync logic
-            ctx = click.get_current_context()
-            ctx.invoke(sync, memory=config["memory_path"])
+            interactive_template_sync(config["memory_path"], config["api_url"], config["license_key"])
             
         click.echo("\nPlease restart your MCP server/IDE.")
     except Exception as e:
         click.echo(f"Update failed: {e}")
 
 @main.command()
+@click.option('--memory', type=click.Path(), help='Path to your local memory directory.')
+@click.option('--api-url', type=str, help='URL of the TalentMe Cloud API.')
+@click.option('--license-key', type=str, help='Your TalentMe License Key.')
+def sync(memory, api_url, license_key):
+    """Interactively sync core protocols and templates from cloud to local memory."""
+    config = load_config()
+    memory_path = memory or config.get("memory_path")
+    if not memory_path:
+        click.echo("Error: No memory path provided and none remembered. Please run 'setup' first.")
+        return
+    
+    memory_path = os.path.abspath(os.path.expanduser(memory_path))
+    api_url = api_url or config.get("api_url")
+    license_key = license_key or config.get("license_key")
+    
+    interactive_template_sync(memory_path, api_url, license_key)
+
+@main.command()
 @click.option('--init-memory', type=click.Path(), help='Initialize or connect to a local memory directory.')
-@click.option('--api-url', type=str, default='http://localhost:8000', help='URL of the TalentMe Cloud API.')
-@click.option('--license-key', type=str, default='test-key', help='Your TalentMe License Key.')
+@click.option('--api-url', type=str, help='URL of the TalentMe Cloud API.')
+@click.option('--license-key', type=str, help='Your TalentMe License Key.')
 def start(init_memory, api_url, license_key):
     """Start the TalentMe MCP Server."""
     config = load_config()
@@ -216,16 +218,16 @@ def start(init_memory, api_url, license_key):
     sys._talentme_api_url = api_url
     sys._talentme_license_key = license_key
 
-    # 2. Handle Memory Initialization or Sync
+    # 2. Handle Memory Initialization (Silent, no template fetch)
     if init_memory:
         init_memory = os.path.abspath(os.path.expanduser(init_memory))
-        init_memory_structure(init_memory)
+        init_memory_structure(init_memory, template_name=None)
     
     # 3. Check core llm-wiki protocol (JUST WARN, DON'T FETCH)
     if init_memory and os.path.exists(init_memory):
         dest_skill = os.path.join(init_memory, ".skills", "llm-wiki")
         if not os.path.exists(dest_skill):
-            click.echo(f"[*] Note: Core protocol 'llm-wiki' is missing in {init_memory}. AI wiki features may be limited. Run 'talentme sync' to install it.", err=True)
+            click.echo(f"[*] Note: Optional protocol 'llm-wiki' is missing. Run 'talentme sync' if you need wiki features.", err=True)
 
     click.echo(f"Starting TalentMe MCP Server connected to Cloud API: {api_url}", err=True)
     mcp_server = create_server(api_url, license_key, skills_path, init_memory)
@@ -248,15 +250,11 @@ def setup():
     # Save config
     save_config(memory_path, api_url, license_key)
 
-    # Store API info in sys for init_memory_structure to pick up
-    sys._talentme_api_url = api_url
-    sys._talentme_license_key = license_key
-
-    # 3. Create Memory Directory and Wiki Structure
+    # 3. Create Memory Directory structure
     init_memory_structure(memory_path, template_name=None)
     
-    if click.confirm("\nWould you like to download the core LLM Wiki protocol (llm-wiki) to your memory?"):
-        init_memory_structure(memory_path, template_name="llm-wiki")
+    # 4. Interactive Template Choice
+    interactive_template_sync(memory_path, api_url, license_key)
     
     # 4. Configure IDEs
     talentme_path = sys.executable.replace("python", "talentme") # Heuristic for venv bin
