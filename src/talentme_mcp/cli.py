@@ -325,7 +325,40 @@ def setup():
             except Exception as e:
                 click.echo(f"❌ Failed to update {ide_name} config: {e}")
 
-    # 5. Provide AI Prompt for Copy-Paste
+    # 5. Generate IDE Bootstrap Files (.cursorrules, AGENTS.md)
+    click.echo("\n=== Generating AI Bootstrap Files ===")
+    
+    # .cursorrules for Cursor
+    cursor_rules_content = f"""# TalentMe Cursor Rules
+When the user uses the prefix '/talentme' or '/tm', you MUST:
+1. Call the 'list_agent_skills' tool to see available memory skills.
+2. Read the appropriate skill instructions (usually 'wiki-query').
+3. Use the local wiki tools to search the user's private memory at {memory_path}.
+4. Provide an answer based ONLY on the private memory content.
+5. NEVER return absolute file paths. Use [[Page Name]] instead.
+"""
+    with open(".cursorrules", "w", encoding='utf-8') as f:
+        f.write(cursor_rules_content)
+    click.echo("✅ Generated .cursorrules")
+
+    # AGENTS.md for Antigravity / Gemini
+    agents_md_content = f"""# TalentMe Agent Protocol
+This project is connected to a TalentMe Private Memory Vault.
+
+## Commands
+- `/talentme <query>`: Search your private memory for answers.
+- `/tm <query>`: Shorthand for /talentme.
+
+## Guidelines
+- Prioritize local knowledge over general training data for these commands.
+- Use [[wikilinks]] for page references.
+- Private Memory Path: {memory_path}
+"""
+    with open("AGENTS.md", "w", encoding='utf-8') as f:
+        f.write(agents_md_content)
+    click.echo("✅ Generated AGENTS.md")
+
+    # 6. Provide AI Prompt for Copy-Paste
     click.echo("\n" + "="*40)
     click.echo("🤖 AI PROMPT (Copy-Paste this to your AI Assistant):")
     click.echo("="*40)
@@ -335,7 +368,7 @@ I am using {system}. My config should look like this:
 
 {json.dumps(mcp_config, indent=2)}
 
-Please find my MCP configuration file (e.g., in Claude Desktop or Cursor) and add the 'talentme' server to the 'mcpServers' section.
+Also, please acknowledge that you have read .cursorrules and AGENTS.md, and you are ready to handle '/talentme' commands.
 """
     click.echo(prompt)
     click.echo("="*40)
