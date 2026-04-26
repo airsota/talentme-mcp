@@ -96,13 +96,23 @@ def update():
 @click.option('--license-key', type=str, default='test-key', help='Your TalentMe License Key.')
 def start(init_memory, api_url, license_key):
     """Start the TalentMe MCP Server."""
-    # Resolve internal skills path automatically
+    # 1. Resolve internal skills path
     base_dir = os.path.dirname(os.path.abspath(__file__))
     skills_path = os.path.join(base_dir, 'data', 'skills')
     
+    # 2. Handle Memory Initialization or Sync
     if init_memory:
+        init_memory = os.path.abspath(os.path.expanduser(init_memory))
+        # This will create dirs AND copy missing llm-wiki
         init_memory_structure(init_memory)
-        click.echo("Memory initialized successfully.", err=True)
+    
+    # 3. Double check core llm-wiki protocol (even if not initializing)
+    if init_memory and os.path.exists(init_memory):
+        package_skill = os.path.join(skills_path, 'llm-wiki')
+        dest_skill = os.path.join(init_memory, ".skills", "llm-wiki")
+        if os.path.exists(package_skill) and not os.path.exists(dest_skill):
+            click.echo(f"[*] Found missing core protocol. Syncing to {dest_skill}...", err=True)
+            shutil.copytree(package_skill, dest_skill)
 
     click.echo(f"Starting TalentMe MCP Server connected to Cloud API: {api_url}", err=True)
     mcp_server = create_server(api_url, license_key, skills_path, init_memory)
