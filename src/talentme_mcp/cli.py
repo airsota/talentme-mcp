@@ -9,6 +9,23 @@ import subprocess
 from pathlib import Path
 from .server import create_server
 
+CONFIG_FILE = Path.home() / ".talentme_config.json"
+
+def save_config(memory_path, api_url, license_key):
+    config = {
+        "memory_path": memory_path,
+        "api_url": api_url,
+        "license_key": license_key
+    }
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, indent=2)
+
+def load_config():
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
 def init_memory_structure(memory_path: str):
     """Initialize the LLM Wiki structure in the specified path."""
     click.echo(f"Initializing Memory at {memory_path}...", err=True)
@@ -98,7 +115,25 @@ def update():
         click.echo("Re-installing dependencies...")
         subprocess.run([sys.executable, "-m", "pip", "install", "-e", "."], cwd=repo_dir, check=True)
         
-        click.echo("\nSuccessfully updated! Please restart your MCP server/IDE.")
+        click.echo("\n✅ Software successfully updated!")
+        
+        # New: Auto-sync templates if config exists
+        config = load_config()
+        if config.get("memory_path") and config.get("api_url"):
+            click.echo(f"\n[*] Detected local memory at: {config['memory_path']}")
+            click.echo("[*] Synchronizing cloud templates...")
+            
+            sys._talentme_api_url = config['api_url']
+            sys._talentme_license_key = config.get('license_key', 'test-key')
+            
+            # Force sync
+            dest_skill = os.path.join(config['memory_path'], ".skills", "llm-wiki")
+            if os.path.exists(dest_skill):
+                shutil.rmtree(dest_skill)
+            init_memory_structure(config['memory_path'])
+            click.echo("✅ Templates synchronized!")
+            
+        click.echo("\nPlease restart your MCP server/IDE.")
     except Exception as e:
         click.echo(f"Update failed: {e}")
         click.echo("Please ensure 'git' is installed and you have network access.")
@@ -109,6 +144,17 @@ def update():
 @click.option('--license-key', type=str, default='test-key', help='Your TalentMe License Key.')
 def start(init_memory, api_url, license_key):
     """Start the TalentMe MCP Server."""
+    config = load_config()
+    
+    # Use config as fallback, but flags override config
+    init_memory = init_memory or config.get("memory_path")
+    api_url = api_url or config.get("api_url", "https://api-talentme.airsota.com")
+    license_key = license_key or config.get("license_key", "test-key")
+
+    # Save current settings as new default
+    if init_memory:
+        save_config(init_memory, api_url, license_key)
+
     # 1. Resolve internal skills path
     base_dir = os.path.dirname(os.path.abspath(__file__))
     skills_path = os.path.join(base_dir, 'data', 'skills')
@@ -145,9 +191,12 @@ def setup():
     memory_path = os.path.abspath(os.path.expanduser(memory_path))
     
     # 2. Ask for API details
-    api_url = click.prompt("Cloud API URL", default="http://localhost:8000")
+    api_url = click.prompt("Cloud API URL", default="https://api-talentme.airsota.com")
     license_key = click.prompt("Your License Key", default="test-key")
     
+    # Save config
+    save_config(memory_path, api_url, license_key)
+
     # Store API info in sys for init_memory_structure to pick up
     sys._talentme_api_url = api_url
     sys._talentme_license_key = license_key
