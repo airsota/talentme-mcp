@@ -207,6 +207,53 @@ def update():
     except Exception as e:
         click.echo(f"Update failed: {e}")
 
+def link_native_skills(memory_path: str):
+    """Symlink local skills to agent directories for native skill support."""
+    click.echo("\n=== Installing Native Skills (Symlinking) ===", err=True)
+    local_skills_path = os.path.join(memory_path, ".skills")
+    
+    agent_paths = [
+        # Project local paths
+        Path(".claude/skills"),
+        Path(".cursor/skills"),
+        Path(".windsurf/skills"),
+        Path(".agents/skills"),
+        Path(".pi/skills"),
+        Path(".kiro/skills"),
+        # Global paths
+        Path.home() / ".claude/skills",
+        Path.home() / ".gemini/skills",
+        Path.home() / ".gemini/antigravity/skills",
+        Path.home() / ".gemini/antigravity-ide/skills",
+        Path.home() / ".codex/skills",
+        Path.home() / ".hermes/skills",
+        Path.home() / ".openclaw/skills",
+        Path.home() / ".copilot/skills",
+        Path.home() / ".trae/skills",
+        Path.home() / ".trae-cn/skills",
+        Path.home() / ".kiro/skills",
+        Path.home() / ".pi/agent/skills",
+        Path.home() / ".agents/skills"
+    ]
+    
+    if os.path.exists(local_skills_path):
+        for agent_path in agent_paths:
+            try:
+                agent_path.mkdir(parents=True, exist_ok=True)
+                for skill_name in os.listdir(local_skills_path):
+                    src = os.path.join(local_skills_path, skill_name)
+                    if os.path.isdir(src):
+                        dst = agent_path / skill_name
+                        if dst.exists() or dst.is_symlink():
+                            if dst.is_symlink():
+                                dst.unlink()
+                            else:
+                                continue # Skip real dirs to be safe
+                        os.symlink(os.path.abspath(src), dst)
+                click.echo(f"✅ Linked skills to {agent_path}", err=True)
+            except Exception as e:
+                click.echo(f"⚠️  Could not link to {agent_path}: {e}", err=True)
+
 @main.command()
 @click.option('--memory', type=click.Path(), help='Path to your local memory directory.')
 @click.option('--api-url', type=str, help='URL of the TalentMe Cloud API.')
@@ -237,6 +284,8 @@ def sync(memory, api_url, license_key, force):
         click.echo("Done!")
     else:
         interactive_template_sync(memory_path, api_url, license_key)
+        
+    link_native_skills(memory_path)
 
 @main.command()
 @click.option('--init-memory', type=click.Path(), help='Initialize or connect to a local memory directory.')
@@ -465,50 +514,7 @@ Also, please acknowledge that you have configured your rules, and you are ready 
     click.echo("="*40)
 
     # 7. Symlink skills to agent directories (Native Skill support)
-    click.echo("\n=== Installing Native Skills (Symlinking) ===")
-    local_skills_path = os.path.join(memory_path, ".skills")
-    
-    agent_paths = [
-        # Project local paths
-        Path(".claude/skills"),
-        Path(".cursor/skills"),
-        Path(".windsurf/skills"),
-        Path(".agents/skills"),
-        Path(".pi/skills"),
-        Path(".kiro/skills"),
-        # Global paths
-        Path.home() / ".claude/skills",
-        Path.home() / ".gemini/skills",
-        Path.home() / ".gemini/antigravity/skills",
-        Path.home() / ".gemini/antigravity-ide/skills",
-        Path.home() / ".codex/skills",
-        Path.home() / ".hermes/skills",
-        Path.home() / ".openclaw/skills",
-        Path.home() / ".copilot/skills",
-        Path.home() / ".trae/skills",
-        Path.home() / ".trae-cn/skills",
-        Path.home() / ".kiro/skills",
-        Path.home() / ".pi/agent/skills",
-        Path.home() / ".agents/skills"
-    ]
-    
-    if os.path.exists(local_skills_path):
-        for agent_path in agent_paths:
-            try:
-                agent_path.mkdir(parents=True, exist_ok=True)
-                for skill_name in os.listdir(local_skills_path):
-                    src = os.path.join(local_skills_path, skill_name)
-                    if os.path.isdir(src):
-                        dst = agent_path / skill_name
-                        if dst.exists() or dst.is_symlink():
-                            if dst.is_symlink():
-                                dst.unlink()
-                            else:
-                                continue # Skip real dirs to be safe
-                        os.symlink(os.path.abspath(src), dst)
-                click.echo(f"✅ Linked skills to {agent_path}")
-            except Exception as e:
-                click.echo(f"⚠️  Could not link to {agent_path}: {e}")
+    link_native_skills(memory_path)
 
     click.echo("\n=== Setup Complete! ===")
     if configured_any:
