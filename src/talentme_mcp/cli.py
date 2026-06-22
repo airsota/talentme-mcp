@@ -39,22 +39,35 @@ def load_config():
         
     return config
 
-def init_memory_structure(memory_path: str, template_name: str = None):
-    """Initialize the LLM Wiki structure and optionally fetch a specific template."""
+def init_memory_structure(memory_path: str, template_name: str = None, license_key: str = None):
+    """Initialize the LLM Wiki structure using local template and upgrade DB schema."""
     click.echo(f"Initializing/Syncing Memory at {memory_path}...", err=True)
     
-    # Core directories based on LLM Wiki pattern
-    dirs = [
-        "concepts", "entities", "skills", "references", 
-        "synthesis", "journal", "projects", "_raw", "_meta", ".skills"
-    ]
-    for d in dirs:
-        os.makedirs(os.path.join(memory_path, d), exist_ok=True)
-        
-    # Initialize SQLite DB for structured logging
+    # 1. Clone local memory template (if exists)
+    # SECURITY: Never hardcode absolute server paths in a public MCP package.
+    # Use environment variable for local testing, fallback to basic dirs for public clients.
+    cloud_env_path = os.environ.get("TALENTME_CLOUD_PATH")
+    
+    if cloud_env_path:
+        template_dir = os.path.join(cloud_env_path, "templates", "local_memory", "v1.0.0")
+        if os.path.exists(template_dir):
+            shutil.copytree(template_dir, memory_path, dirs_exist_ok=True)
+        else:
+            dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
+            for d in dirs:
+                os.makedirs(os.path.join(memory_path, d), exist_ok=True)
+    else:
+        # Fallback for public users (in production, they should fetch via API)
+        dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
+        for d in dirs:
+            os.makedirs(os.path.join(memory_path, d), exist_ok=True)
+            
+    # 2. Initialize and Upgrade SQLite DB
     db_path = os.path.join(memory_path, 'memory.db')
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+    
+    # Table 1: Learning Logs
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS learning_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,20 +77,21 @@ def init_memory_structure(memory_path: str, template_name: str = None):
             mastery_level INTEGER
         )
     ''')
+    
+    # Table 2: User Config (for license tracking and system state)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_config (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    if license_key:
+        cursor.execute("INSERT OR REPLACE INTO user_config (key, value) VALUES ('license_key', ?)", (license_key,))
+        
     conn.commit()
     conn.close()
-    
-    # Initialize index.md
-    index_path = os.path.join(memory_path, 'index.md')
-    if not os.path.exists(index_path):
-        with open(index_path, 'w') as f:
-            f.write("# Wiki Index\n\n## Concepts\n\n## Entities\n\n## Skills\n")
-            
-    # Initialize log.md
-    log_path = os.path.join(memory_path, 'log.md')
-    if not os.path.exists(log_path):
-        with open(log_path, 'w') as f:
-            f.write("## Log\n\n")
             
     # Try to fetch specified template from Cloud API (ONLY if requested)
     if not template_name:
@@ -150,7 +164,7 @@ def interactive_template_sync(memory_path: str, api_url: str, license_key: str):
             return
         elif choice == "all":
             for t in templates:
-                init_memory_structure(memory_path, t)
+                init_memory_structure(memory_path, t, sys._talentme_license_key)
         else:
             try:
                 # Support comma separated numbers: "1,2"
@@ -239,7 +253,7 @@ def start(init_memory, api_url, license_key):
     sys._talentme_license_key = final_key
 
     # 2. Handle Memory Initialization (Silent)
-    init_memory_structure(final_memory, template_name=None)
+    init_memory_structure(final_memory, template_name=None, license_key=final_key)
     
     click.echo(f"[*] TalentMe MCP Server starting...", err=True)
     click.echo(f"[*] Memory: {final_memory}", err=True)
@@ -265,7 +279,7 @@ def setup():
     save_config(memory_path, api_url, license_key)
 
     # 3. Create Memory Directory structure
-    init_memory_structure(memory_path, template_name=None)
+    init_memory_structure(memory_path, template_name=None, license_key=license_key)
     
     # 4. Interactive Template Choice
     interactive_template_sync(memory_path, api_url, license_key)
@@ -433,7 +447,7 @@ def sync(memory, api_url, license_key):
     if os.path.exists(dest_skill):
         shutil.rmtree(dest_skill)
         
-    init_memory_structure(memory_path)
+    init_memory_structure(memory_path, license_key=sys._talentme_license_key)
     click.echo("Done!")
 
 if __name__ == "__main__":
