@@ -356,23 +356,35 @@ def setup():
             except Exception as e:
                 click.echo(f"❌ Failed to update {ide_name} config: {e}")
 
-    # 5. Generate IDE Bootstrap Files (.cursorrules, AGENTS.md)
+    # 5. Generate IDE Bootstrap Files
     click.echo("\n=== Generating AI Bootstrap Files ===")
     
-    # .cursorrules for Cursor
-    cursor_rules_content = f"""# TalentMe Cursor Rules
-When the user uses the prefix '/talentme' or '/tm', you MUST:
+    # Common rules instructions
+    rules_text = f"""When the user uses the prefix '/talentme' or '/tm', you MUST:
 1. Call the 'list_agent_skills' tool to see available memory skills.
 2. Read the appropriate skill instructions (usually 'wiki-query').
 3. Use the local wiki tools to search the user's private memory at {memory_path}.
 4. Provide an answer based ONLY on the private memory content.
 5. NEVER return absolute file paths. Use [[Page Name]] instead.
 """
+    
+    # 5a. Project-local rule files
+    # .cursorrules
     with open(".cursorrules", "w", encoding='utf-8') as f:
-        f.write(cursor_rules_content)
-    click.echo("✅ Generated .cursorrules")
+        f.write(f"# TalentMe Cursor Rules\n{rules_text}")
+    click.echo("    ✅ Generated .cursorrules")
 
-    # AGENTS.md for Antigravity / Gemini
+    # CLAUDE.md
+    with open("CLAUDE.md", "w", encoding='utf-8') as f:
+        f.write(f"# TalentMe CLAUDE Instructions\n{rules_text}")
+    click.echo("    ✅ Generated CLAUDE.md")
+
+    # GEMINI.md
+    with open("GEMINI.md", "w", encoding='utf-8') as f:
+        f.write(f"# TalentMe GEMINI Instructions\n{rules_text}")
+    click.echo("    ✅ Generated GEMINI.md")
+
+    # AGENTS.md
     agents_md_content = f"""# TalentMe Agent Protocol
 This project is connected to a TalentMe Private Memory Vault.
 
@@ -387,7 +399,55 @@ This project is connected to a TalentMe Private Memory Vault.
 """
     with open("AGENTS.md", "w", encoding='utf-8') as f:
         f.write(agents_md_content)
-    click.echo("✅ Generated AGENTS.md")
+    click.echo("    ✅ Generated AGENTS.md")
+
+    # .hermes.md (symlink to AGENTS.md)
+    try:
+        if os.path.exists(".hermes.md") or os.path.islink(".hermes.md"):
+            os.unlink(".hermes.md")
+        os.symlink("AGENTS.md", ".hermes.md")
+        click.echo("    ✅ Generated .hermes.md symlink")
+    except Exception:
+        pass
+
+    # Ensure directories for specific rule files exist
+    os.makedirs(".cursor/rules", exist_ok=True)
+    os.makedirs(".windsurf/rules", exist_ok=True)
+    os.makedirs(".agent/rules", exist_ok=True)
+    os.makedirs(".agent/workflows", exist_ok=True)
+    os.makedirs(".github", exist_ok=True)
+
+    # .cursor/rules/talentme.mdc
+    cursor_mdc_content = f"""---
+description: Custom instructions for interacting with TalentMe Private Memory
+globs: *
+alwaysApply: true
+---
+# TalentMe Cursor Rules
+{rules_text}"""
+    with open(".cursor/rules/talentme.mdc", "w", encoding='utf-8') as f:
+        f.write(cursor_mdc_content)
+    click.echo("    ✅ Generated .cursor/rules/talentme.mdc")
+
+    # .windsurf/rules/talentme.md
+    with open(".windsurf/rules/talentme.md", "w", encoding='utf-8') as f:
+        f.write(f"# TalentMe Windsurf Rules\n{rules_text}")
+    click.echo("    ✅ Generated .windsurf/rules/talentme.md")
+
+    # .agent/rules/talentme.md
+    with open(".agent/rules/talentme.md", "w", encoding='utf-8') as f:
+        f.write(f"# TalentMe Antigravity Rules\n{rules_text}")
+    click.echo("    ✅ Generated .agent/rules/talentme.md")
+
+    # .agent/workflows/talentme.md
+    with open(".agent/workflows/talentme.md", "w", encoding='utf-8') as f:
+        f.write(f"# TalentMe Slash Commands\n- `/talentme <query>`: Search your private memory.\n- `/tm <query>`: Shorthand for /talentme.\n")
+    click.echo("    ✅ Generated .agent/workflows/talentme.md")
+
+    # .github/copilot-instructions.md
+    with open(".github/copilot-instructions.md", "w", encoding='utf-8') as f:
+        f.write(f"# TalentMe Copilot Instructions\n{rules_text}")
+    click.echo("    ✅ Generated .github/copilot-instructions.md")
 
     # 6. Provide AI Prompt for Copy-Paste
     click.echo("\n" + "="*40)
@@ -399,7 +459,7 @@ I am using {system}. My config should look like this:
 
 {json.dumps(mcp_config, indent=2)}
 
-Also, please acknowledge that you have read .cursorrules and AGENTS.md, and you are ready to handle '/talentme' commands.
+Also, please acknowledge that you have configured your rules, and you are ready to handle '/talentme' commands.
 """
     click.echo(prompt)
     click.echo("="*40)
@@ -409,9 +469,27 @@ Also, please acknowledge that you have read .cursorrules and AGENTS.md, and you 
     local_skills_path = os.path.join(memory_path, ".skills")
     
     agent_paths = [
-        Path.home() / ".gemini/antigravity/skills",
+        # Project local paths
+        Path(".claude/skills"),
+        Path(".cursor/skills"),
+        Path(".windsurf/skills"),
+        Path(".agents/skills"),
+        Path(".pi/skills"),
+        Path(".kiro/skills"),
+        # Global paths
         Path.home() / ".claude/skills",
-        Path.home() / ".cursor/skills"
+        Path.home() / ".gemini/skills",
+        Path.home() / ".gemini/antigravity/skills",
+        Path.home() / ".gemini/antigravity-ide/skills",
+        Path.home() / ".codex/skills",
+        Path.home() / ".hermes/skills",
+        Path.home() / ".openclaw/skills",
+        Path.home() / ".copilot/skills",
+        Path.home() / ".trae/skills",
+        Path.home() / ".trae-cn/skills",
+        Path.home() / ".kiro/skills",
+        Path.home() / ".pi/agent/skills",
+        Path.home() / ".agents/skills"
     ]
     
     if os.path.exists(local_skills_path):
@@ -427,7 +505,7 @@ Also, please acknowledge that you have read .cursorrules and AGENTS.md, and you 
                                 dst.unlink()
                             else:
                                 continue # Skip real dirs to be safe
-                        os.symlink(src, dst)
+                        os.symlink(os.path.abspath(src), dst)
                 click.echo(f"✅ Linked skills to {agent_path}")
             except Exception as e:
                 click.echo(f"⚠️  Could not link to {agent_path}: {e}")
