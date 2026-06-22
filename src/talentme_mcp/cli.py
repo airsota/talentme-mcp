@@ -392,7 +392,9 @@ def setup():
     interactive_template_sync(memory_path, api_url, license_key, email)
     
     # 4. Configure IDEs
-    talentme_path = sys.executable.replace("python", "talentme") # Heuristic for venv bin
+    venv_bin_dir = Path(sys.executable).parent
+    talentme_exe = "talentme.exe" if platform.system() == "Windows" else "talentme"
+    talentme_path = str(venv_bin_dir / talentme_exe)
     if not os.path.exists(talentme_path):
         talentme_path = "talentme" # Fallback to naked command
         
