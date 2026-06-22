@@ -1,7 +1,7 @@
 import requests
 from mcp.server.fastmcp import FastMCP
 
-def setup_list_agent_skills(mcp: FastMCP, api_url: str, license_key: str):
+def setup_list_agent_skills(mcp: FastMCP, api_url: str, license_key: str, email: str = None):
     @mcp.tool()
     def list_agent_skills() -> str:
         """
@@ -9,9 +9,12 @@ def setup_list_agent_skills(mcp: FastMCP, api_url: str, license_key: str):
         These skills are dynamic sets of instructions tailored for specific tasks.
         """
         try:
+            headers = {"Authorization": f"Bearer {license_key}"}
+            if email:
+                headers["X-User-Email"] = email
             response = requests.get(
                 f"{api_url.rstrip('/')}/api/skills/list",
-                headers={"Authorization": f"Bearer {license_key}"},
+                headers=headers,
                 timeout=10
             )
             if response.status_code == 200:

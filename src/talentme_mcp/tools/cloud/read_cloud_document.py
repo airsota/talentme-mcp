@@ -1,7 +1,7 @@
 import requests
 from mcp.server.fastmcp import FastMCP
 
-def setup_read_cloud_document(mcp: FastMCP, api_url: str, license_key: str):
+def setup_read_cloud_document(mcp: FastMCP, api_url: str, license_key: str, email: str = None):
     @mcp.tool()
     def read_cloud_document(file_path: str) -> str:
         """
@@ -12,10 +12,13 @@ def setup_read_cloud_document(mcp: FastMCP, api_url: str, license_key: str):
             file_path: The specific document path returned by the search engine.
         """
         try:
+            headers = {"Authorization": f"Bearer {license_key}"}
+            if email:
+                headers["X-User-Email"] = email
             response = requests.post(
                 f"{api_url.rstrip('/')}/api/kb/document",
                 json={"file_path": file_path},
-                headers={"Authorization": f"Bearer {license_key}"},
+                headers=headers,
                 timeout=10
             )
             if response.status_code == 200:

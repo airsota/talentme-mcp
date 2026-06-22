@@ -1,7 +1,7 @@
 import requests
 from mcp.server.fastmcp import FastMCP
 
-def setup_read_agent_skill_instruction(mcp: FastMCP, api_url: str, license_key: str):
+def setup_read_agent_skill_instruction(mcp: FastMCP, api_url: str, license_key: str, email: str = None):
     @mcp.tool()
     def read_agent_skill_instruction(skill_name: str, type: str = "system") -> str:
         """
@@ -14,9 +14,12 @@ def setup_read_agent_skill_instruction(mcp: FastMCP, api_url: str, license_key: 
             type: Currently defaults to 'system'.
         """
         try:
+            headers = {"Authorization": f"Bearer {license_key}"}
+            if email:
+                headers["X-User-Email"] = email
             response = requests.get(
                 f"{api_url.rstrip('/')}/api/skills/get/{skill_name}",
-                headers={"Authorization": f"Bearer {license_key}"},
+                headers=headers,
                 timeout=10
             )
             if response.status_code == 200:

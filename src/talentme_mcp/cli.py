@@ -11,11 +11,12 @@ from .server import create_server
 
 CONFIG_FILE = Path.home() / ".talentme_config.json"
 
-def save_config(memory_path, api_url, license_key):
+def save_config(memory_path, api_url, license_key, email=None):
     config = {
         "memory_path": memory_path,
         "api_url": api_url,
-        "license_key": license_key
+        "license_key": license_key,
+        "email": email
     }
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=2)
@@ -36,10 +37,12 @@ def load_config():
         config["api_url"] = os.environ.get("TALENTME_API_URL")
     if os.environ.get("TALENTME_MEMORY_PATH"):
         config["memory_path"] = os.environ.get("TALENTME_MEMORY_PATH")
+    if os.environ.get("TALENTME_EMAIL"):
+        config["email"] = os.environ.get("TALENTME_EMAIL")
         
     return config
 
-def init_memory_structure(memory_path: str, template_name: str = None, license_key: str = None):
+def init_memory_structure(memory_path: str, template_name: str = None, license_key: str = None, email: str = None):
     """Initialize the LLM Wiki structure using local template and upgrade DB schema."""
     click.echo(f"Initializing/Syncing Memory at {memory_path}...", err=True)
     
@@ -47,6 +50,10 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
     # SECURITY: Never hardcode absolute server paths in a public MCP package.
     # Use environment variable for local testing, fallback to basic dirs for public clients.
     cloud_env_path = os.environ.get("TALENTME_CLOUD_PATH")
+    
+    config = load_config()
+    final_license = license_key or getattr(sys, '_talentme_license_key', None) or config.get("license_key")
+    final_email = email or getattr(sys, '_talentme_email', None) or config.get("email")
     
     if cloud_env_path:
         template_dir = os.path.join(cloud_env_path, "templates", "local_memory", "v1.0.0")
@@ -58,14 +65,15 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
                 os.makedirs(os.path.join(memory_path, d), exist_ok=True)
     else:
         # Fetch local_memory structure from Cloud API if possible
-        api_url = getattr(sys, '_talentme_api_url', None) or load_config().get("api_url")
-        license_key = getattr(sys, '_talentme_license_key', None) or load_config().get("license_key") or license_key
+        api_url = getattr(sys, '_talentme_api_url', None) or config.get("api_url")
         
         fetched = False
-        if api_url and license_key:
+        if api_url and final_license:
             try:
                 import requests
-                headers = {"Authorization": f"Bearer {license_key}"}
+                headers = {"Authorization": f"Bearer {final_license}"}
+                if final_email:
+                    headers["X-User-Email"] = final_email
                 resp = requests.get(f"{api_url}/api/templates/get/local_memory", headers=headers, timeout=10)
                 if resp.status_code == 200:
                     files = resp.json().get("files", {})
@@ -114,8 +122,10 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
         )
     ''')
     
-    if license_key:
-        cursor.execute("INSERT OR REPLACE INTO user_config (key, value) VALUES ('license_key', ?)", (license_key,))
+    if final_license:
+        cursor.execute("INSERT OR REPLACE INTO user_config (key, value) VALUES ('license_key', ?)", (final_license,))
+    if final_email:
+        cursor.execute("INSERT OR REPLACE INTO user_config (key, value) VALUES ('email', ?)", (final_email,))
         
     conn.commit()
     conn.close()
@@ -134,6 +144,8 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
             import requests
             click.echo(f"[*] Fetching template '{template_name}' from cloud...", err=True)
             headers = {"Authorization": f"Bearer {license_key}"}
+            if final_email:
+                headers["X-User-Email"] = final_email
             resp = requests.get(f"{api_url}/api/templates/get/{template_name}", headers=headers, timeout=10)
             if resp.status_code == 200:
                 files = resp.json().get("files", {})
@@ -161,15 +173,18 @@ def main():
     """
     pass
 
-def interactive_template_sync(memory_path: str, api_url: str, license_key: str):
+def interactive_template_sync(memory_path: str, api_url: str, license_key: str, email: str = None):
     """Helper to list and sync templates interactively."""
     sys._talentme_api_url = api_url
     sys._talentme_license_key = license_key
+    sys._talentme_email = email
     
     try:
         import requests
         click.echo(f"[*] Fetching available templates from {api_url}...", err=True)
         headers = {"Authorization": f"Bearer {license_key}"}
+        if email:
+            headers["X-User-Email"] = email
         resp = requests.get(f"{api_url}/api/templates/list", headers=headers, timeout=10)
         if resp.status_code != 200:
             click.echo(f"Error: Could not list templates ({resp.status_code})")
@@ -191,7 +206,7 @@ def interactive_template_sync(memory_path: str, api_url: str, license_key: str):
             return
         elif choice == "all":
             for t in templates:
-                init_memory_structure(memory_path, t, sys._talentme_license_key)
+                init_memory_structure(memory_path, t, sys._talentme_license_key, email=sys._talentme_email)
         else:
             try:
                 # Support comma separated numbers: "1,2"
@@ -199,7 +214,7 @@ def interactive_template_sync(memory_path: str, api_url: str, license_key: str):
                 for c in choices:
                     idx = int(c) - 1
                     if 0 <= idx < len(templates):
-                        init_memory_structure(memory_path, templates[idx])
+                        init_memory_structure(memory_path, templates[idx], sys._talentme_license_key, email=sys._talentme_email)
             except ValueError:
                 click.echo("Invalid input. Skipping template installation.")
                 
@@ -228,7 +243,7 @@ def update():
         # Now ask if they want to sync templates
         config = load_config()
         if config.get("memory_path") and click.confirm("\nWould you like to sync/update cloud templates as well?"):
-            interactive_template_sync(config["memory_path"], config["api_url"], config["license_key"])
+            interactive_template_sync(config["memory_path"], config["api_url"], config["license_key"], config.get("email"))
             
         click.echo("\n[IMPORTANT] Please restart your MCP server/IDE to apply new instructions.")
     except Exception as e:
@@ -285,8 +300,9 @@ def link_native_skills(memory_path: str):
 @click.option('--memory', type=click.Path(), help='Path to your local memory directory.')
 @click.option('--api-url', type=str, help='URL of the TalentMe Cloud API.')
 @click.option('--license-key', type=str, help='Your TalentMe License Key.')
+@click.option('--email', type=str, help='Your Account Email.')
 @click.option('--force', is_flag=True, help='Force sync by clean re-initialization of core protocols.')
-def sync(memory, api_url, license_key, force):
+def sync(memory, api_url, license_key, email, force):
     """Sync core protocols and templates from cloud to local memory."""
     config = load_config()
     memory_path = memory or config.get("memory_path")
@@ -297,20 +313,22 @@ def sync(memory, api_url, license_key, force):
     memory_path = os.path.abspath(os.path.expanduser(memory_path))
     api_url = api_url or config.get("api_url")
     license_key = license_key or config.get("license_key")
+    email = email or config.get("email")
     
     # Store API info in sys for init_memory_structure to pick up
     sys._talentme_api_url = api_url
     sys._talentme_license_key = license_key
+    sys._talentme_email = email
     
     if force:
         click.echo(f"=== Force Syncing templates for {memory_path} ===")
         dest_skill = os.path.join(memory_path, ".skills", "llm-wiki")
         if os.path.exists(dest_skill):
             shutil.rmtree(dest_skill)
-        init_memory_structure(memory_path, license_key=license_key)
+        init_memory_structure(memory_path, license_key=license_key, email=email)
         click.echo("Done!")
     else:
-        interactive_template_sync(memory_path, api_url, license_key)
+        interactive_template_sync(memory_path, api_url, license_key, email)
         
     link_native_skills(memory_path)
 
@@ -318,7 +336,8 @@ def sync(memory, api_url, license_key, force):
 @click.option('--init-memory', type=click.Path(), help='Initialize or connect to a local memory directory.')
 @click.option('--api-url', type=str, help='URL of the TalentMe Cloud API.')
 @click.option('--license-key', type=str, help='Your TalentMe License Key.')
-def start(init_memory, api_url, license_key):
+@click.option('--email', type=str, help='Your Account Email.')
+def start(init_memory, api_url, license_key, email):
     """Start the TalentMe MCP Server."""
     config = load_config()
     
@@ -326,6 +345,7 @@ def start(init_memory, api_url, license_key):
     final_memory = init_memory or config.get("memory_path")
     final_api = api_url or config.get("api_url", "https://api-talentme.airsota.com")
     final_key = license_key or config.get("license_key", "test-key")
+    final_email = email or config.get("email", "test@talentme.com")
 
     if not final_memory:
         click.echo("Error: No memory path provided. Please run 'setup' or use --init-memory.")
@@ -336,14 +356,15 @@ def start(init_memory, api_url, license_key):
     # Store API info in sys for tools to pick up
     sys._talentme_api_url = final_api
     sys._talentme_license_key = final_key
+    sys._talentme_email = final_email
 
     # 2. Handle Memory Initialization (Silent)
-    init_memory_structure(final_memory, template_name=None, license_key=final_key)
+    init_memory_structure(final_memory, template_name=None, license_key=final_key, email=final_email)
     
     click.echo(f"[*] TalentMe MCP Server starting...", err=True)
     click.echo(f"[*] Memory: {final_memory}", err=True)
     
-    mcp_server = create_server(final_api, final_key, final_memory)
+    mcp_server = create_server(final_api, final_key, final_memory, final_email)
     mcp_server.run()
 
 @main.command()
@@ -358,16 +379,17 @@ def setup():
     
     # 2. Ask for API details
     api_url = click.prompt("Cloud API URL", default="https://api-talentme.airsota.com")
+    email = click.prompt("Your Account Email", default="test@talentme.com")
     license_key = click.prompt("Your License Key", default="test-key")
     
     # Save config
-    save_config(memory_path, api_url, license_key)
+    save_config(memory_path, api_url, license_key, email)
 
     # 3. Create Memory Directory structure
-    init_memory_structure(memory_path, template_name=None, license_key=license_key)
+    init_memory_structure(memory_path, template_name=None, license_key=license_key, email=email)
     
     # 4. Interactive Template Choice
-    interactive_template_sync(memory_path, api_url, license_key)
+    interactive_template_sync(memory_path, api_url, license_key, email)
     
     # 4. Configure IDEs
     talentme_path = sys.executable.replace("python", "talentme") # Heuristic for venv bin

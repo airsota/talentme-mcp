@@ -1,7 +1,7 @@
 import requests
 from mcp.server.fastmcp import FastMCP
 
-def setup_cloud_knowledge_query(mcp: FastMCP, api_url: str, license_key: str):
+def setup_cloud_knowledge_query(mcp: FastMCP, api_url: str, license_key: str, email: str = None):
     @mcp.tool()
     def cloud_knowledge_query(intent: str, lex_query: str, vec_query: str, top_k: int = 5) -> str:
         """
@@ -14,6 +14,9 @@ def setup_cloud_knowledge_query(mcp: FastMCP, api_url: str, license_key: str):
             top_k: Number of chunks to retrieve.
         """
         try:
+            headers = {"Authorization": f"Bearer {license_key}"}
+            if email:
+                headers["X-User-Email"] = email
             response = requests.post(
                 f"{api_url.rstrip('/')}/api/kb/hybrid_search",
                 json={
@@ -22,7 +25,7 @@ def setup_cloud_knowledge_query(mcp: FastMCP, api_url: str, license_key: str):
                     "vec_query": vec_query,
                     "top_k": top_k
                 },
-                headers={"Authorization": f"Bearer {license_key}"},
+                headers=headers,
                 timeout=15
             )
             if response.status_code == 200:
