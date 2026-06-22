@@ -57,10 +57,37 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
             for d in dirs:
                 os.makedirs(os.path.join(memory_path, d), exist_ok=True)
     else:
-        # Fallback for public users (in production, they should fetch via API)
-        dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
-        for d in dirs:
-            os.makedirs(os.path.join(memory_path, d), exist_ok=True)
+        # Fetch local_memory structure from Cloud API if possible
+        api_url = getattr(sys, '_talentme_api_url', None) or load_config().get("api_url")
+        license_key = getattr(sys, '_talentme_license_key', None) or load_config().get("license_key") or license_key
+        
+        fetched = False
+        if api_url and license_key:
+            try:
+                import requests
+                headers = {"Authorization": f"Bearer {license_key}"}
+                resp = requests.get(f"{api_url}/api/templates/get/local_memory", headers=headers, timeout=10)
+                if resp.status_code == 200:
+                    files = resp.json().get("files", {})
+                    if files:
+                        for rel_path, content in files.items():
+                            # Strip the v1.0.0 prefix if returned
+                            if rel_path.startswith("v1.0.0/"):
+                                rel_path = rel_path[7:]
+                            elif rel_path.startswith("v1.0.0\\"):
+                                rel_path = rel_path[7:]
+                            full_dest = os.path.join(memory_path, rel_path)
+                            os.makedirs(os.path.dirname(full_dest), exist_ok=True)
+                            with open(full_dest, 'w', encoding='utf-8') as f:
+                                f.write(content)
+                        fetched = True
+            except Exception:
+                pass
+                
+        if not fetched:
+            dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
+            for d in dirs:
+                os.makedirs(os.path.join(memory_path, d), exist_ok=True)
             
     # 2. Initialize and Upgrade SQLite DB
     db_path = os.path.join(memory_path, 'memory.db')
