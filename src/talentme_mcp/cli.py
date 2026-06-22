@@ -333,10 +333,6 @@ def start(init_memory, api_url, license_key):
 
     final_memory = os.path.abspath(os.path.expanduser(final_memory))
 
-    # 1. Resolve internal skills path
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    skills_path = os.path.join(base_dir, 'data', 'skills')
-    
     # Store API info in sys for tools to pick up
     sys._talentme_api_url = final_api
     sys._talentme_license_key = final_key
@@ -347,7 +343,7 @@ def start(init_memory, api_url, license_key):
     click.echo(f"[*] TalentMe MCP Server starting...", err=True)
     click.echo(f"[*] Memory: {final_memory}", err=True)
     
-    mcp_server = create_server(final_api, final_key, skills_path, final_memory)
+    mcp_server = create_server(final_api, final_key, final_memory)
     mcp_server.run()
 
 @main.command()
