@@ -211,8 +211,9 @@ def update():
 @click.option('--memory', type=click.Path(), help='Path to your local memory directory.')
 @click.option('--api-url', type=str, help='URL of the TalentMe Cloud API.')
 @click.option('--license-key', type=str, help='Your TalentMe License Key.')
-def sync(memory, api_url, license_key):
-    """Interactively sync core protocols and templates from cloud to local memory."""
+@click.option('--force', is_flag=True, help='Force sync by clean re-initialization of core protocols.')
+def sync(memory, api_url, license_key, force):
+    """Sync core protocols and templates from cloud to local memory."""
     config = load_config()
     memory_path = memory or config.get("memory_path")
     if not memory_path:
@@ -223,7 +224,19 @@ def sync(memory, api_url, license_key):
     api_url = api_url or config.get("api_url")
     license_key = license_key or config.get("license_key")
     
-    interactive_template_sync(memory_path, api_url, license_key)
+    # Store API info in sys for init_memory_structure to pick up
+    sys._talentme_api_url = api_url
+    sys._talentme_license_key = license_key
+    
+    if force:
+        click.echo(f"=== Force Syncing templates for {memory_path} ===")
+        dest_skill = os.path.join(memory_path, ".skills", "llm-wiki")
+        if os.path.exists(dest_skill):
+            shutil.rmtree(dest_skill)
+        init_memory_structure(memory_path, license_key=license_key)
+        click.echo("Done!")
+    else:
+        interactive_template_sync(memory_path, api_url, license_key)
 
 @main.command()
 @click.option('--init-memory', type=click.Path(), help='Initialize or connect to a local memory directory.')
@@ -424,31 +437,7 @@ Also, please acknowledge that you have read .cursorrules and AGENTS.md, and you 
         click.echo("Please RESTART your IDE for the changes to take effect.")
     click.echo("You can now use '/talentme' or '/tm' in your IDE to dominate your ML interviews.")
 
-@main.command()
-@click.option('--memory', type=click.Path(), required=True, help='Path to your local memory directory.')
-@click.option('--api-url', type=str, default='https://api-talentme.airsota.com', help='URL of the TalentMe Cloud API.')
-@click.option('--license-key', type=str, default='test-key', help='Your TalentMe License Key.')
-def sync(memory, api_url, license_key):
-    """Force sync core protocols and templates from cloud to local memory."""
-    memory_path = os.path.abspath(os.path.expanduser(memory))
-    if not os.path.exists(memory_path):
-        click.echo(f"Error: Memory path {memory_path} does not exist. Please run 'setup' first.")
-        return
 
-    # Store API info in sys for init_memory_structure to pick up
-    sys._talentme_api_url = api_url
-    sys._talentme_license_key = license_key
-    
-    click.echo(f"=== Syncing templates for {memory_path} ===")
-    
-    # We want to force sync, so we temporarily remove the local llm-wiki if it exists
-    # but only if it's a protocol (we don't want to delete user data, but .skills/llm-wiki is a protocol)
-    dest_skill = os.path.join(memory_path, ".skills", "llm-wiki")
-    if os.path.exists(dest_skill):
-        shutil.rmtree(dest_skill)
-        
-    init_memory_structure(memory_path, license_key=sys._talentme_license_key)
-    click.echo("Done!")
 
 if __name__ == "__main__":
     main()

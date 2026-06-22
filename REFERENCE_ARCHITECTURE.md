@@ -12,10 +12,10 @@ This document serves as the master source of truth for the TalentMe MCP Architec
 ### Infrastructure & Authorization
 - [x] `list_agent_skills()`: Returns available skills based on user license. (Already exists, needs payload alignment)
 - [x] `read_agent_skill_instruction(skill_name)`: Injects SOP into context. (Already exists)
-- [ ] `check_user_auth_status()`: Returns current subscription tier. (To be added)
+- [x] `check_user_auth_status()`: Returns current subscription tier. (To be added)
 
 ### Cloud Knowledge Engine (Upgraded)
-- [ ] `cloud_knowledge_query(intent, lex_query, vec_query, top_k)`: The new Hybrid QMD Search (replaces `search_knowledge_base`).
+- [x] `cloud_knowledge_query(intent, lex_query, vec_query, top_k)`: The new Hybrid QMD Search (replaces `search_knowledge_base`).
 - [x] `read_cloud_document(file_path)`: Fetches full markdown. (Currently exists as `read_cloud_knowledge`, needs backend mapping).
 
 ### Local Context & Wiki Management (Existing)
@@ -33,17 +33,17 @@ This document serves as the master source of truth for the TalentMe MCP Architec
 These will be drafted as Markdown SOPs and stored in the `cloud/skills/` directory on the server.
 
 ### Category 1: Cloud Synthesis Skills (Server-side, Read-only)
-- [ ] `cloud-jd-matcher`: Matches JD with cloud content.
-- [ ] `cloud-style-framer`: Formats output to BLUF/TalentMe styles.
-- [ ] `cloud-mock-interviewer`: Simulates strict 1v1 interviews using case banks.
+- [x] `cloud-jd-matcher`: Matches JD with cloud content.
+- [x] `cloud-style-framer`: Formats output to BLUF/TalentMe styles.
+- [x] `cloud-mock-interviewer`: Simulates strict 1v1 interviews using case banks.
 
 ### Category 2: Local Management Skills (Client-side, Read/Write)
-- [ ] `local-cross-linker`: Scans vault and creates `[[]]` wikilinks automatically.
-- [ ] `local-timeline-updater`: Manages the user's interview pipeline logs.
-- [ ] `local-review-prompter`: Reminds user to review concepts based on Ebbinghaus curve.
+- [x] `local-cross-linker`: Scans vault and creates `[[]]` wikilinks automatically.
+- [x] `local-timeline-updater`: Manages the user's interview pipeline logs.
+- [x] `local-review-prompter`: Reminds user to review concepts based on Ebbinghaus curve.
 
 ### Category 3: Bridge Orchestrators (Workflow Controllers)
-- [ ] `bridge-sync-and-digest`: The ultimate ETL workflow. Instructs AI to:
+- [x] `bridge-sync-and-digest`: The ultimate ETL workflow. Instructs AI to:
   1. Use `read_agent_skill_instruction` for `cloud-jd-matcher`
   2. Use `cloud_knowledge_query` to fetch facts
   3. Synthesize and use `create_wiki_page` to save locally
