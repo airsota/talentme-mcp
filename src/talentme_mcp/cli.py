@@ -378,9 +378,9 @@ def setup():
     memory_path = os.path.abspath(os.path.expanduser(memory_path))
     
     # 2. Ask for API details
-    api_url = click.prompt("Cloud API URL", default="https://api-talentme.airsota.com")
     email = click.prompt("Your Account Email", default="test@talentme.com")
     license_key = click.prompt("Your License Key", default="test-key")
+    api_url = "https://api-talentme.airsota.com"
     
     # Save config
     save_config(memory_path, api_url, license_key, email)
