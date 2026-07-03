@@ -411,20 +411,33 @@ def setup():
     # Define possible IDE config paths
     ide_paths = {
         "Claude Desktop": None,
-        "Cursor": None
+        "Cursor": None,
+        "Windsurf": None,
+        "Trae": None,
+        "Antigravity": None
     }
     
     if system == "Darwin": # Mac
         ide_paths["Claude Desktop"] = home / "Library/Application Support/Claude/claude_desktop_config.json"
         ide_paths["Cursor"] = home / "Library/Application Support/Cursor/User/globalStorage/mcpServers.json"
+        ide_paths["Windsurf"] = home / ".codeium/windsurf/mcp_config.json"
+        ide_paths["Trae"] = home / ".trae/mcp.json"
+        ide_paths["Antigravity"] = home / ".gemini/config/mcp_config.json"
     elif system == "Windows":
         appdata = Path(os.environ.get("APPDATA", ""))
+        userprofile = Path(os.environ.get("USERPROFILE", ""))
         ide_paths["Claude Desktop"] = appdata / "Claude/claude_desktop_config.json"
         ide_paths["Cursor"] = appdata / "Cursor/User/globalStorage/mcpServers.json"
+        ide_paths["Windsurf"] = userprofile / ".codeium/windsurf/mcp_config.json"
+        ide_paths["Trae"] = userprofile / ".trae/mcp.json"
+        ide_paths["Antigravity"] = userprofile / ".gemini/config/mcp_config.json"
     elif system == "Linux":
         config_home = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
         ide_paths["Claude Desktop"] = config_home / "Claude/claude_desktop_config.json"
         ide_paths["Cursor"] = config_home / "Cursor/User/globalStorage/mcpServers.json"
+        ide_paths["Windsurf"] = home / ".codeium/windsurf/mcp_config.json"
+        ide_paths["Trae"] = home / ".trae/mcp.json"
+        ide_paths["Antigravity"] = home / ".gemini/config/mcp_config.json"
 
     click.echo("\n=== IDE Integration ===")
     
@@ -545,20 +558,42 @@ alwaysApply: true
         f.write(f"# TalentMe Copilot Instructions\n{rules_text}")
     click.echo("    ✅ Generated .github/copilot-instructions.md")
 
-    # 6. Provide AI Prompt for Copy-Paste
-    click.echo("\n" + "="*40)
-    click.echo("🤖 AI PROMPT (Copy-Paste this to your AI Assistant):")
-    click.echo("="*40)
-    prompt = f"""
-Please help me update my MCP configuration to include the TalentMe server. 
-I am using {system}. My config should look like this:
-
-{json.dumps(mcp_config, indent=2)}
-
-Also, please acknowledge that you have configured your rules, and you are ready to handle '/talentme' commands.
-"""
-    click.echo(prompt)
-    click.echo("="*40)
+    # 6. Provide Manual Installation Guide
+    click.echo("\n" + "="*50)
+    click.echo("⚙️  MANUAL MCP CONFIGURATION GUIDE")
+    click.echo("="*50)
+    if not configured_any:
+        click.echo("It looks like automatic IDE configuration was skipped or failed.")
+    
+    click.echo("If you need to manually install the TalentMe MCP server, add this JSON snippet:")
+    click.echo(json.dumps(mcp_config, indent=2))
+    
+    click.echo("\n📌 Common MCP Configuration Paths:")
+    if system == "Darwin":
+        click.echo("  - Claude Desktop : ~/Library/Application Support/Claude/claude_desktop_config.json")
+        click.echo("  - Cursor         : ~/Library/Application Support/Cursor/User/globalStorage/mcpServers.json")
+        click.echo("  - Windsurf       : ~/.codeium/windsurf/mcp_config.json")
+        click.echo("  - Trae           : ~/.trae/mcp.json")
+        click.echo("  - Antigravity    : ~/.gemini/config/mcp_config.json")
+        click.echo("  - Roo Code/Cline : ~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json")
+    elif system == "Windows":
+        click.echo("  - Claude Desktop : %APPDATA%\\Claude\\claude_desktop_config.json")
+        click.echo("  - Cursor         : %APPDATA%\\Cursor\\User\\globalStorage\\mcpServers.json")
+        click.echo("  - Windsurf       : %USERPROFILE%\\.codeium\\windsurf\\mcp_config.json")
+        click.echo("  - Trae           : %USERPROFILE%\\.trae\\mcp.json")
+        click.echo("  - Antigravity    : %USERPROFILE%\\.gemini\\config\\mcp_config.json")
+        click.echo("  - Roo Code/Cline : %APPDATA%\\Code\\User\\globalStorage\\saoudrizwan.claude-dev\\settings\\cline_mcp_settings.json")
+    elif system == "Linux":
+        click.echo("  - Claude Desktop : ~/.config/Claude/claude_desktop_config.json")
+        click.echo("  - Cursor         : ~/.config/Cursor/User/globalStorage/mcpServers.json")
+        click.echo("  - Windsurf       : ~/.codeium/windsurf/mcp_config.json")
+        click.echo("  - Trae           : ~/.trae/mcp.json")
+        click.echo("  - Antigravity    : ~/.gemini/config/mcp_config.json")
+        click.echo("  - Roo Code/Cline : ~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json")
+        
+    click.echo("\n🤖 AI PROMPT (Copy-Paste this to your AI Assistant):")
+    click.echo(f"Please help me update my MCP configuration to include the TalentMe server at the correct path for my IDE. My config should be:\n{json.dumps(mcp_config, indent=2)}")
+    click.echo("="*50)
 
     # 7. Symlink skills to agent directories (Native Skill support)
     link_native_skills(memory_path)

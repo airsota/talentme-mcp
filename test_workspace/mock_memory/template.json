@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "name": "Standard Memory Skeleton",
+  "description": "Standardized folder structure mapping to your local memory vault.",
+  "tools_required": ["wiki-update", "wiki-query", "wiki-lint"]
+}
