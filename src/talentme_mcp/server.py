@@ -15,6 +15,7 @@ from .tools.p2_tools import setup_calendar_tool, setup_report_issue_tool
 from .tools.search import setup_search_tool
 from .tools.learn import setup_learn_tool
 from .tools.assess import setup_assess_tool
+from .tools.rebuild_graph import setup_rebuild_graph_tool
 
 def create_server(api_url: str, license_key: str, memory_path: str = None, email: str = None) -> FastMCP:
     """Create and configure the FastMCP server."""
@@ -36,6 +37,7 @@ def create_server(api_url: str, license_key: str, memory_path: str = None, email
         setup_lint_tool(mcp, memory_path)
         setup_edit_tool(mcp, memory_path)
         setup_calendar_tool(mcp, memory_path)
+        setup_rebuild_graph_tool(mcp, memory_path)
         
     setup_report_issue_tool(mcp, api_url, email)
 

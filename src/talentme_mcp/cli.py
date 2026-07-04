@@ -227,16 +227,17 @@ def update():
     click.echo("=== Updating TalentMe ===")
     try:
         repo_dir = Path(__file__).parent.parent.parent
-        if not (repo_dir / ".git").exists():
-            click.echo("Error: This installation does not appear to be a git repository. Please install via 'git clone'.")
-            return
-
-        click.echo(f"Pulling latest changes in {repo_dir}...")
-        subprocess.run(["git", "pull"], cwd=repo_dir, check=True)
-        
-        click.echo("Re-installing dependencies...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "-e", "."], cwd=repo_dir, check=True)
-        
+        if (repo_dir / ".git").exists():
+            click.echo(f"Pulling latest changes in {repo_dir}...")
+            subprocess.run(["git", "pull"], cwd=repo_dir, check=True)
+            
+            click.echo("Re-installing dependencies...")
+            subprocess.run([sys.executable, "-m", "pip", "install", "-e", "."], cwd=repo_dir, check=True)
+        else:
+            click.echo("Git repository not found. Assuming pip installation...")
+            click.echo("Upgrading via pip...")
+            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "talentme-mcp"], check=True)
+            
         click.echo("\n✅ Software successfully updated!")
         click.echo("💡 PRO TIP: You can now use '/talentme' or '/tm' in your IDE to wake up the assistant.")
         
