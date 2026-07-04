@@ -32,29 +32,29 @@ Skills 是一组纯文本的指令文件，用于教导 Agent 如何在正确的
 
 | 分类 | Skill 名称 | 核心能力 (Agent 判断逻辑) | 支撑的 UX Feature |
 |------|-------------|----------------------------|-------------------|
-| **核心流程** | `tm-guide` | 教 Agent 何时调用 search vs learn vs review。 | 引导与路由 |
-| | `tm-review` | 接管 review 返回的薄弱点，执行苏格拉底式的间隔重复抽查。 | 间隔重复复习 |
-| **知识整理** | `tm-cross-linker` | 发现新页面中未链接的 mention，智能补全 Wikilink。 | 引用图谱维护 |
-| | `tm-provenance` | 写入知识时，判断并标记来源（云端提取 / 个人经验）。 | 数据溯源 |
-| | `tm-contradiction`| 对比新旧知识，发现矛盾时提醒用户。 | 质量控制 |
-| | `tm-merge` | 导入外部资料时，判断是新建、扩展还是合并。 | 知识导入 (F24) |
-| | `tm-tag-taxonomy` | 维持标签一致性（例如防止出现复数、缩写等混乱）。 | 标签管理 |
-| **面试专项** | `tm-assess` | 执行 Assessment 流程，与用户交互出题。 | 新用户 Assessment (F1) |
-| | `tm-mock` | 全真模拟面试教练，严格控制追问压力，绝不直接给答案。 | Mock 面试 (F6) |
-| | `tm-plan` | 基于 Assessment 和目标，生成个性化的 `study-plan.md`。 | 复习计划生成 (F3) |
-| | `tm-prep` | 面试前生成预测题目与知识盲区清单 (`PREP.md`)。 | PREP 面试准备 (F4) |
-| | `tm-debrief` | 面试后引导复盘，更新 Mastery (`debrief.md`)。 | DEBRIEF 轮次复盘 (F4) |
-| | `tm-summary` | 面试结束后提炼经验，回流至知识库 (`SUMMARY.md`)。 | 面试总结 (F4) |
-| | `tm-question` | 面试后/刷帖时录入新面经题，匹配云端并关联知识点。 | 面经整理工具 (F25) |
-| **专家服务** | `tm-brief-for-expert`| 从本地数据脱敏生成发给专家的 Mock 准备文档。 | Mock 前 Brief (F11) |
-| | `tm-coaching-capture`| 捕获职业咨询（Coaching）中的决策，修改复习计划和目标。 | 决策捕获 (F14) |
-| | `tm-import-review`| 接收专家批改过的模板文档，智能合并到本地。 | 简历/答案 Review (F16) |
-| **未来扩展** | `tm-articulate` | 教练模式：强迫用户按 STAR 等框架输出，纠正表达。 | 表达结构化教练 (F17) |
-| *(P2/P3)* | `tm-session-save` | 自动判断聊天记录中值得保留的知识并存为笔记。 | 对话沉淀 |
-| | `tm-history-learn`| 跨项目扫描 Agent 聊天历史提取面经和知识。 | 历史挖掘 |
-| | `tm-insight` | 扫描本地面经库，利用 LLM 聚类发现近期高频考点模式。 | Pattern Detection (F7) |
-| | `tm-resume` | 依据 Mastery 数据自动重写简历 Markdown，并联动 LaTeX 编译。 | 简历动态优化 (F16) |
-| | `tm-offer` | 协助量化对比 Offer，扮演冷酷 HR 进行薪资谈判 Role-play。 | 谈判决策教练 (F20) |
+| **已完成** | `tm-guide` | 教 Agent 何时调用 search vs learn vs review。 | 引导与路由 |
+| **已完成** | `tm-review` | 接管 review 返回的薄弱点，执行苏格拉底式的间隔重复抽查。 | 间隔重复复习 |
+| **已完成** | `tm-cross-linker` | 发现新页面中未链接的 mention，智能补全 Wikilink。 | 引用图谱维护 |
+| **已完成** | `tm-provenance` | 写入知识时，判断并标记来源（云端提取 / 个人经验）。 | 数据溯源 |
+| **已完成** | `tm-contradiction`| 对比新旧知识，发现矛盾时提醒用户。 | 质量控制 |
+| **已完成** | `tm-merge` | 导入外部资料时，判断是新建、扩展还是合并。 | 知识导入 (F24) |
+| **已完成** | `tm-tag-taxonomy` | 维持标签一致性（例如防止出现复数、缩写等混乱）。 | 标签管理 |
+| **已完成** | `tm-assess` | 执行 Assessment 流程，与用户交互出题。 | 新用户 Assessment (F1) |
+| **已完成** | `tm-mock` | 全真模拟面试教练，严格控制追问压力，绝不直接给答案。 | Mock 面试 (F6) |
+| **已完成** | `tm-plan` | 基于 Assessment 和目标，生成个性化的 `study-plan.md`。 | 复习计划生成 (F3) |
+| **已完成** | `tm-prep` | 面试前生成预测题目与知识盲区清单 (`PREP.md`)。 | PREP 面试准备 (F4) |
+| **已完成** | `tm-debrief` | 面试后引导复盘，更新 Mastery (`debrief.md`)。 | DEBRIEF 轮次复盘 (F4) |
+| **已完成** | `tm-summary` | 面试结束后提炼经验，回流至知识库 (`SUMMARY.md`)。 | 面试总结 (F4) |
+| **已完成** | `tm-question` | 面试后/刷帖时录入新面经题，匹配云端并关联知识点。 | 面经整理工具 (F25) |
+| **已完成** | `tm-brief-for-expert`| 从本地数据脱敏生成发给专家的 Mock 准备文档。 | Mock 前 Brief (F11) |
+| **已完成** | `tm-coaching-capture`| 捕获职业咨询（Coaching）中的决策，修改复习计划和目标。 | 决策捕获 (F14) |
+| **已完成** | `tm-import-review`| 接收专家批改过的模板文档，智能合并到本地。 | 简历/答案 Review (F16) |
+| **已完成** | `tm-articulate` | 教练模式：强迫用户按 STAR 等框架输出，纠正表达。 | 表达结构化教练 (F17) |
+| **已完成** | `tm-session-save` | 自动判断聊天记录中值得保留的知识并存为笔记。 | 对话沉淀 |
+| **已完成** | `tm-history-learn`| 跨项目扫描 Agent 聊天历史提取面经和知识。 | 历史挖掘 |
+| **已完成** | `tm-insight` | 扫描本地面经库，利用 LLM 聚类发现近期高频考点模式。 | Pattern Detection (F7) |
+| **已完成** | `tm-resume` | 依据 Mastery 数据自动重写简历 Markdown，并联动 LaTeX 编译。 | 简历动态优化 (F16) |
+| **已完成** | `tm-offer` | 协助量化对比 Offer，扮演冷酷 HR 进行薪资谈判 Role-play。 | 谈判决策教练 (F20) |
 
 ---
 
