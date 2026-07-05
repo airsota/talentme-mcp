@@ -262,8 +262,8 @@ def update():
             subprocess.run([sys.executable, "-m", "pip", "install", "-e", "."], cwd=repo_dir, check=True)
         else:
             click.echo("Git repository not found. Assuming pip installation...")
-            click.echo("Upgrading via pip...")
-            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "talentme-mcp"], check=True)
+            click.echo("Upgrading from official GitHub repository...")
+            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--force-reinstall", "git+https://github.com/airsota/talentme-mcp.git"], check=True)
             
         click.echo("\n✅ Software successfully updated!")
         click.echo("💡 PRO TIP: You can now use '/talentme' or '/tm' in your IDE to wake up the assistant.")
