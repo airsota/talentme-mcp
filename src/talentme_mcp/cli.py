@@ -410,8 +410,17 @@ def setup():
     license_key = click.prompt("Your License Key", default="test-key")
     api_url = "https://api-talentme.airsota.com"
     
+    # 3. Ask for Memory Write Mode
+    click.echo("\n--- Agent Behavior Configuration ---")
+    click.echo("How would you like the AI to manage your local knowledge memory?")
+    click.echo("  [auto]      - The AI proactively saves learnings in the background.")
+    click.echo("  [semi-auto] - The AI will ask you for permission before saving. (Recommended)")
+    click.echo("  [manual]    - The AI only reads memory and never writes unless you explicitly tell it to.")
+    memory_write_mode = click.prompt("Select a mode", type=click.Choice(['auto', 'semi-auto', 'manual']), default="semi-auto")
+    
     # Save config
     save_config(memory_path, api_url, license_key, email)
+    update_settings("memory_write_mode", memory_write_mode)
 
     # 3. Create Memory Directory structure
     init_memory_structure(memory_path, template_name=None, license_key=license_key, email=email)
