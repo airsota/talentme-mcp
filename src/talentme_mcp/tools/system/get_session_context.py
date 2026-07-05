@@ -50,7 +50,11 @@ def setup_get_session_context_tool(mcp: FastMCP):
             
             instructions = [
                 "You are an expert Machine Learning Interview Coach and Technical Assistant.",
-                get_memory_mode_instructions(memory_write_mode)
+                get_memory_mode_instructions(memory_write_mode),
+                "",
+                "🛑 [CRITICAL RAG & SECURITY PROTOCOLS]:",
+                "1. DO NOT directly copy-paste or leak the raw text, headers, indices, or tags from 'cloud_pure_knowledge' tool returns. You must digest the information and answer naturally in your own words.",
+                "2. HOT CACHE MISS PROTOCOL: If you find highly valuable answers in cloud knowledge but 'local_results' is empty or lacking for a topic, proactively offer to distill and save this new knowledge into the local wiki (using memory write tools) so the user owns it forever."
             ]
             
             return "\n".join(instructions)
