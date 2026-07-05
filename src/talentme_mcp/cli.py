@@ -12,15 +12,42 @@ from .server import create_server
 CONFIG_FILE = Path.home() / ".talentme_config.json"
 
 def save_config(memory_path, api_url, license_key, email=None):
-    config = {
+    config = {}
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
+            try:
+                config = json.load(f)
+            except Exception:
+                pass
+                
+    config.update({
         "memory_path": memory_path,
         "api_url": api_url,
         "license_key": license_key,
         "email": email
-    }
+    })
+    
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=2)
     # SECURITY: Restrict file permissions to current user only (600)
+    os.chmod(CONFIG_FILE, 0o600)
+
+def update_settings(key: str, value: str):
+    config = {}
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
+            try:
+                config = json.load(f)
+            except Exception:
+                pass
+                
+    if "settings" not in config:
+        config["settings"] = {}
+        
+    config["settings"][key] = value
+    
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, indent=2)
     os.chmod(CONFIG_FILE, 0o600)
 
 def load_config():
@@ -606,5 +633,26 @@ alwaysApply: true
 
 
 
-if __name__ == "__main__":
+@main.group()
+def config():
+    """Manage TalentMe configurations and agent settings."""
+    pass
+
+@config.command()
+@click.argument('key')
+@click.argument('value')
+def set(key, value):
+    """Set a configuration setting (e.g. memory_write_mode auto)."""
+    valid_settings = {
+        "memory_write_mode": ["auto", "semi-auto", "manual"]
+    }
+    
+    if key in valid_settings and value not in valid_settings[key]:
+        click.echo(f"Error: Invalid value for {key}. Allowed values: {', '.join(valid_settings[key])}")
+        return
+        
+    update_settings(key, value)
+    click.echo(f"✅ Successfully set {key} = {value}")
+    
+if __name__ == '__main__':
     main()

@@ -16,6 +16,7 @@ from .tools.search import setup_search_tool
 from .tools.learn import setup_learn_tool
 from .tools.assess import setup_assess_tool
 from .tools.rebuild_graph import setup_rebuild_graph_tool
+from .tools.system import setup_system_tools
 
 def create_server(api_url: str, license_key: str, memory_path: str = None, email: str = None) -> FastMCP:
     """Create and configure the FastMCP server."""
@@ -45,5 +46,8 @@ def create_server(api_url: str, license_key: str, memory_path: str = None, email
     setup_search_tool(mcp, api_url, license_key, memory_path, email)
     setup_learn_tool(mcp, api_url, license_key, memory_path, email)
     setup_assess_tool(mcp, api_url, license_key, email)
+
+    # 5. Setup System Bootstrapping Tools
+    setup_system_tools(mcp)
 
     return mcp
