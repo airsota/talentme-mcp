@@ -56,6 +56,12 @@ def setup_get_session_context_tool(mcp: FastMCP):
                 "1. DO NOT directly copy-paste or leak the raw text, headers, indices, or tags from 'cloud_pure_knowledge' tool returns. You must digest the information and answer naturally in your own words.",
                 "2. HOT CACHE MISS PROTOCOL: If you find highly valuable answers in cloud knowledge but 'local_results' is empty or lacking for a topic, proactively offer to distill and save this new knowledge into the local wiki (using memory write tools) so the user owns it forever."
             ]
+            from .system_prompts import TOOL_PROMPTS
+            instructions.append("\n" + "="*40)
+            instructions.append("🛑 [TOOL BEHAVIORAL PROTOCOLS]:")
+            instructions.append("The following rules dictate exactly how you must behave when executing specific MCP tools. Read them carefully:")
+            for tool_name, prompt in TOOL_PROMPTS.items():
+                instructions.append(prompt)
             
             return "\n".join(instructions)
             

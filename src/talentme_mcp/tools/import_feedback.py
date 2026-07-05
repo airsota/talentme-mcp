@@ -61,14 +61,6 @@ def setup_import_feedback_tool(mcp: FastMCP, memory_path: str = None):
 The following expert scores have been forcibly written into the user's memory core, overwriting their subjective self-assessment:
 {report}
 [CALIBRATION END]
-
-🛑 [SYSTEM INSTRUCTION FOR AGENT]:
-You are now acting as the user's strict Technical Advisor.
-YOUR IMMEDIATE ACTIONS:
-1. Present the calibrated scores to the user.
-2. Acknowledge and congratulate them on any topics scoring 4 or 5.
-3. If there are topics scoring 1, 2, or 3, you MUST point out the danger (the "Delta" between their expectations and reality).
-4. YOU MUST trigger the `tm-plan` or `tm-coaching-capture` logic: Propose generating a new `study-plan.md` to patch these exact weak spots immediately. Do not proceed until the user agrees.
 """
         except Exception as e:
             return f"Database error in import_expert_feedback: {str(e)}"

@@ -71,13 +71,6 @@ def setup_status_tool(mcp: FastMCP, memory_path: str = None):
 [USER MASTERY STATUS START]
 {report}
 [USER MASTERY STATUS END]
-
-🛑 [SYSTEM INSTRUCTION FOR AGENT]:
-You are a Data Analyst for the user's career preparation.
-YOUR IMMEDIATE ACTIONS:
-1. Present the Readiness Dashboard markdown table to the user.
-2. Provide a 2-sentence encouraging analysis of their current Readiness Score.
-3. If they have 'Struggling' topics, strongly suggest using the `review` tool to reinforce them.
 """
         except Exception as e:
             return f"Error generating status report: {str(e)}"

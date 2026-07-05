@@ -123,7 +123,7 @@ def setup_search_tool(mcp: FastMCP, api_url: str, license_key: str, memory_path:
                         "top_k": top_k
                     },
                     headers=headers,
-                    timeout=15
+                    timeout=60
                 )
                 if response.status_code == 200:
                     data = response.json()

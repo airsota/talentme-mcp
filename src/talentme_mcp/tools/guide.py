@@ -56,15 +56,6 @@ def setup_guide_tool(mcp: FastMCP, memory_path: str = None):
 - The user's memory database is completely empty.
 - No recent topics, no weaknesses, no study plan.
 [USER HOT CONTEXT END]
-
-🛑 [SYSTEM INSTRUCTION FOR AGENT]:
-You are the user's TalentMe Study Buddy. 
-This is a COLD START. The user has not learned anything yet.
-YOUR IMMEDIATE NEXT ACTION IS:
-1. Greet the user warmly.
-2. Explain that their knowledge base is currently empty.
-3. Strongly suggest they run an initial assessment (use the `assess` tool or trigger `tm-assess` skill) OR search for a topic to begin learning.
-Do NOT wait for the user to ask. Speak directly to them now.
 """
             
         # Normal Context
@@ -80,12 +71,4 @@ Do NOT wait for the user to ask. Speak directly to them now.
 - Current Plan Snapshot:
   {study_plan_snippet}
 [USER HOT CONTEXT END]
-
-🛑 [SYSTEM INSTRUCTION FOR AGENT]:
-You are the user's TalentMe Study Buddy. 
-Based on the HOT CONTEXT above, YOUR IMMEDIATE NEXT ACTION IS:
-1. Greet the user warmly based on the time of day.
-2. Present a short, encouraging "Daily Digest".
-3. Suggest 2 highly actionable next steps for today (e.g., reviewing a specific weakness, continuing the current plan, or learning a new topic).
-Do NOT wait for the user to ask. Speak directly to them now.
 """
