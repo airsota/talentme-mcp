@@ -7,23 +7,31 @@
 ---
 
 ## 1. MCP Tools (后端基础能力)
-MCP Tools 是底层代码驱动的接口，负责连接云端 API、操作本地 SQLite 数据库（`memory.db`）以及做确定性的增量计算。
+MCP Tools 是底层代码驱动的接口，负责连接云端 API、操作本地 SQLite 数据库（`memory.db`）以及做确定性的增量计算。这里包含本地实际注册的 **21 个 MCP Tools**：
 
 | 优先级 | Tool 名称 | 核心功能 | 支撑的 UX Feature |
 |--------|------------|----------|-------------------|
-| **已完成** | **`search`** | 本地与云端双源检索。 | 全局基石 |
-| **已完成** | **`guide`** | 读取 `memory.db` 返回当前的 Hot Context（盲区/进度）。 | Daily Digest (F22) |
-| **已完成** | **`learn`** | 拉取云端知识，按角色编译，注入 Frontmatter，写入本地。 | 风格适配 (F2), 追问预览 (F18) |
-| **已完成** | **`assess`** | 拉取云端问卷，初始化用户的 Mastery 种子数据。 | 新用户 Assessment (F1) |
-| **已完成** | **`review`** | 读取遗忘曲线数据，返回最需要复习的知识点。 | 日常学习循环 |
-| **已完成** | **`status`** | 聚合 Mastery 数据，返回雷达图、热力图数据结构。 | 掌握度可视化, Readiness Score (F19), Peer Comparison (F9) |
-| **已完成** | **`lint`** | 盲区检测（云端对比本地）、过期追踪、悬空链接检查。 | 健康检查 |
-| **已完成** | **`edit`** | 修改本地 Wiki 页面的内容。 | 基础维护 |
-| **已完成** | **`interview`** | 面试时间线 CRUD 操作，记录各轮次状态。 | 面试时间线 (F5) |
-| **已完成** | **`import-feedback`**| 解析专家的结构化评分（JSON），用来精准校准本地 Mastery。 | 专家反馈导入 (F12) |
-| **已完成** | **`log-progress`**| 底层核心写入器，记录所有学习与评测的 Mastery 熟练度落盘。 | 状态流转枢纽 |
-| **已完成** | **`calendar-sync`**| 对接日历 API 或系统定时器，实现面试日程的主动唤醒提醒。 | 日程驱动 (F10) |
-| **已完成** | **`report-issue`** | 一键将本地纠错或脱敏后的优质面经分享上报回云端。 | 社区数据飞轮 (Crowdsourcing) |
+| **已完成** | **`search`** | 执行本地与云端双源检索。 | 全局基石 |
+| **已完成** | **`learn`** | 拉取云端知识，启动伴学精读。 | 风格适配 (F2) |
+| **已完成** | **`assess`** | 拉取云端评估量表，开展评估测试。 | 新用户定级测试 (F1) |
+| **已完成** | **`guide`** | 拉取今日 Hot Context（进度/盲区），提供向导建议。 | Daily Digest (F22) |
+| **已完成** | **`review`** | 依据艾宾浩斯记忆曲线拉取待复习条目。 | 间隔重复复习 |
+| **已完成** | **`status`** | 聚合 Mastery 熟练度数据，生成雷达图结构。 | Readiness 评估 (F19) |
+| **已完成** | **`log_learning_progress`** | 核心写入器，记录并落盘考评、复习与简历定级的 Mastery 分数。 | 状态流转中枢 |
+| **已完成** | **`manage_interview`** | 登记/修改面试时间线和录取进度。 | 面试时间线 (F5) |
+| **已完成** | **`import_expert_feedback`** | 解析专家的评分 JSON，直接校准本地数据库。 | 专家反馈导入 (F12) |
+| **已完成** | **`calendar_sync`** | 同步日程提醒到日历和系统定时器。 | 日程驱动 (F10) |
+| **已完成** | **`report_issue`** | 一键将本地内容冲突或纠错上报回云端。 | 纠错上报 |
+| **已完成** | **`check_user_auth_status`** | 检查用户云端订阅状态和访问权限。 | 权限鉴权 |
+| **已完成** | **`get_user_memory_summary`** | 抓取用户记忆摘要，进行个性化问候。 | 个性化体验 |
+| **已完成** | **`list_agent_skills`** | 列出云端当前可用的所有 Agent Skills 列表。 | 系统元数据 |
+| **已完成** | **`read_agent_skill_instruction`** | 隐式拉取并注入指定的 Skill 系统提示词。 | Skill 动态切换 |
+| **已完成** | **`create_wiki_page`** | 本地 Wiki 数据库：创建新知识 Markdown 卡片。 | Wiki 管理 |
+| **已完成** | **`read_wiki_page`** | 本地 Wiki 数据库：读取已有卡片内容。 | Wiki 融合 |
+| **已完成** | **`update_wiki_page`** | 本地 Wiki 数据库：修改/覆盖/追加卡片内容。 | Wiki 编织 |
+| **已完成** | **`list_local_wiki_pages`** | 本地 Wiki 数据库：列出所有 Markdown 卡片列表。 | 全局扫描 |
+| **已完成** | **`lint_wiki`** | 静态维护：全局扫描断链、死链和悬空页面。 | Wiki 静态体检 |
+| **已完成** | **`rebuild_wiki_graph`** | 强力重建：更新双向链接，**[优化项：新增提取 Markdown YAML 熟练度反向同步至 SQLite 的机制]**。 | 图谱编织与防数据漂移 |
 
 ---
 
@@ -61,14 +69,15 @@ Skills 是一组纯文本的指令文件，用于教导 Agent 如何在正确的
 ## 3. UX Feature 与底层实现的映射归纳
 从用户的视角出发，上述所有的工具和技能将交织成以下的 TalentMe 产品特性。
 
-1. **零基础冷启动循环**
+1. **零基础冷启动循环 (已增加优化分支)**
    - **Empty State 智能路由**: 系统发现用户为“白板”时，各组件不报错，而是主动切换话术引导向导。
-   - 用户运行 Setup。
-   - `tm-assess` (Skill) 调起 `assess` (MCP Tool) 获取问卷并计算初始水平。
-   - `tm-plan` (Skill) 自动生成 `study-plan.md`。
+   - **分支 A (定级测试)**: `tm-assess` (Skill) 调起 `assess` (MCP Tool) 获取问卷并进行评估。
+   - **分支 B (简历冷启动)**: `tm-resume` (Skill) 自动解析用户上传的简历，逆向抽取其项目和技术栈，推算 Mastery 水平并调用 `log_learning_progress` 写入数据库。
+   - **生成大纲**: 两条支线定级完成后，均由 `tm-plan` (Skill) 自动生成定制化的 `study-plan.md`。
 2. **日常无感沉淀体验 (The Aha Moment)**
    - 每日打开，`guide` (MCP) 的 Hot Context 支持 **Daily Digest (F22)**。
    - 用户提问，触发 **Search -> Learn -> Merge/Link** 自动化流水线。
+   - **双轨制反向同步 (已增加优化项)**: 执行 `rebuild_wiki_graph` 重建关系图谱时，自动解析本地 Markdown 笔记 YAML 中的熟练度分值，反向更新并覆写到 `memory.db`（SQLite），彻底消灭数据漂移。
    - 其中 `learn` (MCP) 的不同参数支撑 **风格适配 (F2)**，并返回 **追问角度预览 (F18)**。
 3. **面试实战全家桶**
    - 面试推进时，使用 `interview` (MCP) 记录 **时间线 (F5)**。
