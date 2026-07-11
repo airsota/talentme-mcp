@@ -31,21 +31,21 @@ def create_server(api_url: str, license_key: str, memory_path: str = None, email
     if memory_path:
         setup_local_tools(mcp, memory_path)
         setup_guide_tool(mcp, memory_path)
-        setup_review_tool(mcp, memory_path)
-        setup_status_tool(mcp, memory_path)
-        setup_interview_tool(mcp, memory_path)
-        setup_import_feedback_tool(mcp, memory_path)
-        setup_lint_tool(mcp, memory_path)
+        # setup_review_tool(mcp, memory_path)
+        # setup_status_tool(mcp, memory_path)
+        # setup_interview_tool(mcp, memory_path)
+        # setup_import_feedback_tool(mcp, memory_path)
+        # setup_lint_tool(mcp, memory_path)
         setup_edit_tool(mcp, memory_path)
-        setup_calendar_tool(mcp, memory_path)
-        setup_rebuild_graph_tool(mcp, memory_path)
+        # setup_calendar_tool(mcp, memory_path)
+        # setup_rebuild_graph_tool(mcp, memory_path)
         
-    setup_report_issue_tool(mcp, api_url, email)
+    # setup_report_issue_tool(mcp, api_url, email)
 
     # 4. Setup Unified Dual-Source Tools
     setup_search_tool(mcp, api_url, license_key, memory_path, email)
     setup_learn_tool(mcp, api_url, license_key, memory_path, email)
-    setup_assess_tool(mcp, api_url, license_key, email)
+    # setup_assess_tool(mcp, api_url, license_key, email)
 
     # 5. Setup System Bootstrapping Tools
     setup_system_tools(mcp)
