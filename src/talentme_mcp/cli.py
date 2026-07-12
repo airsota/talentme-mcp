@@ -506,12 +506,36 @@ def setup():
     click.echo("\n=== Generating AI Bootstrap Files ===")
     
     # Common rules instructions
-    rules_text = f"""When the user uses the prefix '/talentme' or '/tm', you MUST:
-1. Call the 'list_agent_skills' tool to see available memory skills.
-2. Read the appropriate skill instructions (usually 'wiki-query').
-3. Use the local wiki tools to search the user's private memory at {memory_path}.
-4. Provide an answer based ONLY on the private memory content.
-5. NEVER return absolute file paths. Use [[Page Name]] instead.
+    rules_text = f"""When interacting with the user, you act as the TalentMe Partner Agent. This workspace is integrated with the TalentMe Local and Cloud Knowledge Bases.
+You have access to a set of dynamic skills. Depending on the scenario, you MUST first load and execute the appropriate skill before proceeding:
+
+## ⚡ Dynamic Skill Dispatcher (CRITICAL)
+Before responding or calling other tools, check if the current scenario matches any trigger below. If it does, you MUST call `read_agent_skill_instruction(skill_name: ...)` to fetch and follow its instructions:
+
+1. **Daily Summary / Onboarding / "What should I do today?"**
+   - Trigger: User asks for a daily summary, progress, status, or what tasks to do.
+   - Skill: Call `read_agent_skill_instruction` with `skill_name: "tm-guide"`.
+
+2. **Learning / Compiling Cloud Knowledge**
+   - Trigger: User says "I want to learn X", "sync X from cloud", or "create notes for X".
+   - Skill: Call `read_agent_skill_instruction` with `skill_name: "bridge-sync-and-digest"`.
+
+3. **Handling Duplicate Concept Files**
+   - Trigger: You are about to call `create_wiki_page` or write a new note, but a file for this topic already exists (always check first using `list_local_wiki_pages`).
+   - Skill: Call `read_agent_skill_instruction` with `skill_name: "tm-merge"`.
+
+4. **Information Conflicts / Logical Contradictions**
+   - Trigger: During writing, editing, or merging, you notice new information conflicts with existing local records.
+   - Skill: Call `read_agent_skill_instruction` with `skill_name: "tm-contradiction"`.
+
+5. **Organizing Links / Weaving the Knowledge Graph**
+   - Trigger: After writing a new file, importing content, or when explicitly asked to link/cross-reference.
+   - Skill: Call `read_agent_skill_instruction` with `skill_name: "tm-cross-linker"`.
+
+## 🛠️ General Guidelines
+- Always prioritize local knowledge from this private memory workspace at {memory_path}.
+- Avoid absolute paths in responses; use [[Wikilinks]] for page references.
+- Private Memory Path: {memory_path}
 """
     
     # 5a. Project-local rule files

@@ -54,6 +54,10 @@ graph TD
 ---
 
 ## 🔗 Cross-References
-- ⬅️ **Prerequisites**: [[Prerequisite_Concept_Name]]
-- ↔️ **Comparisons**: [[Alternative_Concept_A]], [[Alternative_Concept_B]]
-- ➡️ **Next Steps / Advanced**: [[Advanced_Concept_Name]]
+<!-- NOTE FOR AGENT: 
+     - ONLY wrap concepts in double brackets [[Wikilinks]] if they already exist locally in the workspace.
+     - For concepts that do not exist locally yet, write them as plain text (e.g., Concept Name) to prevent broken links.
+-->
+- ⬅️ **Prerequisites**: Prerequisite_Concept_Name
+- ↔️ **Comparisons**: Alternative_Concept_A, Alternative_Concept_B
+- ➡️ **Next Steps / Advanced**: Advanced_Concept_Name

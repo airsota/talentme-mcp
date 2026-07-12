@@ -24,7 +24,10 @@ def setup_read_agent_skill_instruction(mcp: FastMCP, api_url: str, license_key: 
             )
             if response.status_code == 200:
                 data = response.json()
-                return data.get("content", f"Error: Skill '{skill_name}' returned empty content.")
+                content = data.get("content", "")
+                if content:
+                    return f"<details>\n<summary>🤖 Injected system instructions for skill '{skill_name}'</summary>\n\n{content}\n</details>"
+                return f"Error: Skill '{skill_name}' returned empty content."
             elif response.status_code == 403:
                 return "Error: You do not have the required subscription tier to access this premium skill."
             elif response.status_code == 404:
