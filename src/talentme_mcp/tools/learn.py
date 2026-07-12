@@ -79,7 +79,8 @@ def setup_learn_tool(mcp: FastMCP, api_url: str, license_key: str, memory_path: 
                         topic TEXT,
                         summary TEXT,
                         mastery_level INTEGER,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        details TEXT
                     )
                 ''')
                 cursor.execute(

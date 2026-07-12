@@ -136,7 +136,8 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             topic TEXT,
             summary TEXT,
-            mastery_level INTEGER
+            mastery_level INTEGER,
+            details TEXT
         )
     ''')
     
