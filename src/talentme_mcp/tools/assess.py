@@ -31,26 +31,17 @@ def setup_assess_tool(mcp: FastMCP, api_url: str, license_key: str, email: str =
             if email:
                 headers["X-User-Email"] = email
             
-            # Use hybrid_search to fetch the relevant assessment rubric
-            query = f"Assessment Rubric Syllabus Interview Questions for {domain} {level}"
-            response = requests.post(
-                f"{api_url.rstrip('/')}/api/kb/hybrid_search",
-                json={
-                    "intent": "knowledge_retrieval",
-                    "lex_query": query,
-                    "vec_query": query,
-                    "top_k": 1
-                },
+            # Query the dedicated assessment templates endpoint
+            response = requests.get(
+                f"{api_url.rstrip('/')}/api/kb/assessment",
+                params={"domain": domain, "level": level},
                 headers=headers,
                 timeout=15
             )
             if response.status_code == 200:
                 data = response.json()
-                chunks = data.get("results", [])
-                if chunks:
-                    cloud_content = _strip_qmd_metadata(chunks[0])
-                else:
-                    cloud_content = f"Fallback Standard Rubric: Please evaluate the user on 1. Fundamentals of {domain}, 2. Real-world application, 3. Trade-offs typical for {level} level."
+                content = data.get("content", "")
+                cloud_content = _strip_qmd_metadata(content)
             else:
                 cloud_content = f"Error: Cloud API returned {response.status_code}."
         except Exception as e:
