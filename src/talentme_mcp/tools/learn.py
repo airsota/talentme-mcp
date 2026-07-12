@@ -32,14 +32,14 @@ def setup_learn_tool(mcp: FastMCP, api_url: str, license_key: str, memory_path: 
             if email:
                 headers["X-User-Email"] = email
             
-            # Using hybrid_search as a proxy to fetch document content
+            # Using hybrid_search as a proxy to fetch document content (Fragment Assembly)
             response = requests.post(
                 f"{api_url.rstrip('/')}/api/kb/hybrid_search",
                 json={
                     "intent": "knowledge_retrieval",
                     "lex_query": cloud_doc_id,
                     "vec_query": cloud_doc_id,
-                    "top_k": 1
+                    "top_k": 5
                 },
                 headers=headers,
                 timeout=15
@@ -48,7 +48,17 @@ def setup_learn_tool(mcp: FastMCP, api_url: str, license_key: str, memory_path: 
                 data = response.json()
                 chunks = data.get("results", [])
                 if chunks:
-                    cloud_content = _strip_qmd_metadata(chunks[0])
+                    cleaned_chunks = []
+                    for idx, chunk in enumerate(chunks):
+                        pure_chunk = _strip_qmd_metadata(chunk)
+                        if pure_chunk:
+                            cleaned_chunks.append(f"### [Knowledge Chunk #{idx+1}]\n{pure_chunk}")
+                    cloud_content = "\n\n---\n\n".join(cleaned_chunks)
+                    
+                    # 4. Append Dynamic Watermark (4th Line of Defense)
+                    lic_suffix = license_key[:8] if license_key else "unknown"
+                    watermark = f"\n\n---\n*本笔记为 TalentMe (https://talentme.airsota.com) 专属定制编译 (License: tm-{lic_suffix})。*"
+                    cloud_content += watermark
                 else:
                     cloud_content = f"Error: No content found in cloud for '{cloud_doc_id}'."
             else:
