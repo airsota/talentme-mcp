@@ -17,8 +17,13 @@ def setup_read_agent_skill_instruction(mcp: FastMCP, api_url: str, license_key: 
             headers = {"Authorization": f"Bearer {license_key}"}
             if email:
                 headers["X-User-Email"] = email
+            params = {}
+            if type and type != "system":
+                params["role"] = type
+                
             response = requests.get(
                 f"{api_url.rstrip('/')}/api/skills/get/{skill_name}",
+                params=params,
                 headers=headers,
                 timeout=10
             )
