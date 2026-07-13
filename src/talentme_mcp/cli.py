@@ -116,107 +116,116 @@ def copy_template_tree(src: str, dst: str):
             if is_system_file or not os.path.exists(dst_file):
                 shutil.copy2(src_file, dst_file)
 
-def init_memory_structure(memory_path: str, template_name: str = None, license_key: str = None, email: str = None):
+def init_memory_structure(memory_path: str, template_name: str = None, license_key: str = None, email: str = None, force: bool = False):
     """Initialize the LLM Wiki structure using local template and upgrade DB schema."""
-    click.echo(f"Initializing/Syncing Memory at {memory_path}...", err=True)
+    # Check if the memory path is already bootstrapped (DB + core concepts directory exist)
+    is_bootstrap_done = os.path.exists(os.path.join(memory_path, 'memory.db')) and os.path.exists(os.path.join(memory_path, 'concepts'))
     
-    # 1. Clone local memory template (if exists)
-    # SECURITY: Never hardcode absolute server paths in a public MCP package.
-    # Use environment variable for local testing, fallback to basic dirs for public clients.
-    cloud_env_path = os.environ.get("TALENTME_CLOUD_PATH")
+    # Skip download/copying if bootstrap is already completed and force is False
+    skip_download = is_bootstrap_done and not force and not template_name
     
-    config = load_config()
-    final_license = license_key or getattr(sys, '_talentme_license_key', None) or config.get("license_key")
-    final_email = email or getattr(sys, '_talentme_email', None) or config.get("email")
-    
-    if cloud_env_path:
-        base_template_dir = os.path.join(cloud_env_path, "templates", "local_memory")
-        template_dir = None
-        if os.path.exists(base_template_dir):
-            try:
-                # 1. Try to read active_version from manifest.json at the template root
-                manifest_path = os.path.join(base_template_dir, "manifest.json")
-                active_version = None
-                if os.path.exists(manifest_path):
-                    try:
-                        with open(manifest_path, "r", encoding="utf-8") as f:
-                            manifest = json.load(f)
-                            active_version = manifest.get("active_version")
-                    except Exception:
-                        pass
-                
-                # 2. If manifest specifies a valid version subdirectory, use it
-                if active_version and os.path.isdir(os.path.join(base_template_dir, active_version)):
-                    template_dir = os.path.join(base_template_dir, active_version)
-                else:
-                    # 3. Fallback: Dynamic SemVer Sorting
-                    subdirs = [d for d in os.listdir(base_template_dir) if os.path.isdir(os.path.join(base_template_dir, d)) and d.startswith("v") and not d.startswith(".")]
-                    if subdirs:
-                        def parse_version(v_str):
-                            parts = v_str.strip("v").split(".")
-                            return [int(p) for p in parts if p.isdigit()]
-                        subdirs.sort(key=parse_version, reverse=True)
-                        template_dir = os.path.join(base_template_dir, subdirs[0])
-            except Exception:
-                pass
-                
-        if not template_dir or not os.path.exists(template_dir):
-            template_dir = os.path.join(cloud_env_path, "templates", "local_memory", "v1.0.0")
-
-        if os.path.exists(template_dir):
-            copy_template_tree(template_dir, memory_path)
-        else:
-            dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
-            for d in dirs:
-                os.makedirs(os.path.join(memory_path, d), exist_ok=True)
+    if skip_download:
+        click.echo(f"Memory structure at {memory_path} already initialized, skipping template sync.", err=True)
     else:
-        # Fetch local_memory structure from Cloud API if possible
-        api_url = getattr(sys, '_talentme_api_url', None) or config.get("api_url")
+        click.echo(f"Initializing/Syncing Memory at {memory_path}...", err=True)
         
-        fetched = False
-        if api_url and final_license:
-            try:
-                import requests
-                headers = {"Authorization": f"Bearer {final_license}"}
-                if final_email:
-                    headers["X-User-Email"] = final_email
-                resp = requests.get(f"{api_url}/api/templates/get/local_memory", headers=headers, timeout=10)
-                if resp.status_code == 200:
-                    files = resp.json().get("files", {})
-                    if files:
-                        for rel_path, content in files.items():
-                            # Strip any version prefix dynamically if returned (e.g. v1.0.0/ or v1.0.1/)
-                            import re
-                            rel_path = re.sub(r"^v\d+\.\d+\.\d+[/\\]", "", rel_path)
-                            # SECURITY: Sanitize path to prevent traversal attacks
-                            clean_path = os.path.normpath(rel_path).lstrip(os.sep)
-                            if '..' in clean_path.split(os.sep):
-                                continue  # Skip malicious paths
-                            full_dest = os.path.join(memory_path, clean_path)
-                            if not os.path.realpath(full_dest).startswith(os.path.realpath(memory_path)):
-                                continue  # Skip paths that escape the vault
-                            
-                            # SECURITY & DATA INTEGRITY:
-                            # Only overwrite system files (like template.json, .skills/*, _meta/*).
-                            # Never overwrite user-modifiable markdown files or readmes.
-                            is_system_file = (
-                                clean_path == "template.json" or 
-                                clean_path.startswith(".skills/") or 
-                                clean_path.startswith("_meta/")
-                            )
-                            
-                            if is_system_file or not os.path.exists(full_dest):
-                                os.makedirs(os.path.dirname(full_dest), exist_ok=True)
-                                with open(full_dest, 'w', encoding='utf-8') as f:
-                                    f.write(content)
-                        fetched = True
-            except Exception:
-                pass
-                
-        if not fetched:
-            dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
-            for d in dirs:
-                os.makedirs(os.path.join(memory_path, d), exist_ok=True)
+        # 1. Clone local memory template (if exists)
+        # SECURITY: Never hardcode absolute server paths in a public MCP package.
+        # Use environment variable for local testing, fallback to basic dirs for public clients.
+        cloud_env_path = os.environ.get("TALENTME_CLOUD_PATH")
+        
+        config = load_config()
+        final_license = license_key or getattr(sys, '_talentme_license_key', None) or config.get("license_key")
+        final_email = email or getattr(sys, '_talentme_email', None) or config.get("email")
+        
+        if cloud_env_path:
+            base_template_dir = os.path.join(cloud_env_path, "templates", "local_memory")
+            template_dir = None
+            if os.path.exists(base_template_dir):
+                try:
+                    # 1. Try to read active_version from manifest.json at the template root
+                    manifest_path = os.path.join(base_template_dir, "manifest.json")
+                    active_version = None
+                    if os.path.exists(manifest_path):
+                        try:
+                            with open(manifest_path, "r", encoding="utf-8") as f:
+                                manifest = json.load(f)
+                                active_version = manifest.get("active_version")
+                        except Exception:
+                            pass
+                    
+                    # 2. If manifest specifies a valid version subdirectory, use it
+                    if active_version and os.path.isdir(os.path.join(base_template_dir, active_version)):
+                        template_dir = os.path.join(base_template_dir, active_version)
+                    else:
+                        # 3. Fallback: Dynamic SemVer Sorting
+                        subdirs = [d for d in os.listdir(base_template_dir) if os.path.isdir(os.path.join(base_template_dir, d)) and d.startswith("v") and not d.startswith(".")]
+                        if subdirs:
+                            def parse_version(v_str):
+                                parts = v_str.strip("v").split(".")
+                                return [int(p) for p in parts if p.isdigit()]
+                            subdirs.sort(key=parse_version, reverse=True)
+                            template_dir = os.path.join(base_template_dir, subdirs[0])
+                except Exception:
+                    pass
+                    
+            if not template_dir or not os.path.exists(template_dir):
+                template_dir = os.path.join(cloud_env_path, "templates", "local_memory", "v1.0.0")
+
+            if os.path.exists(template_dir):
+                copy_template_tree(template_dir, memory_path)
+            else:
+                dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
+                for d in dirs:
+                    os.makedirs(os.path.join(memory_path, d), exist_ok=True)
+        else:
+            # Fetch local_memory structure from Cloud API if possible
+            api_url = getattr(sys, '_talentme_api_url', None) or config.get("api_url")
+            
+            fetched = False
+            if api_url and final_license:
+                try:
+                    import requests
+                    headers = {"Authorization": f"Bearer {final_license}"}
+                    if final_email:
+                        headers["X-User-Email"] = final_email
+                    resp = requests.get(f"{api_url}/api/templates/get/local_memory", headers=headers, timeout=10)
+                    if resp.status_code == 200:
+                        files = resp.json().get("files", {})
+                        if files:
+                            for rel_path, content in files.items():
+                                # Strip any version prefix dynamically if returned (e.g. v1.0.0/ or v1.0.1/)
+                                import re
+                                rel_path = re.sub(r"^v\d+\.\d+\.\d+[/\\]", "", rel_path)
+                                # SECURITY: Sanitize path to prevent traversal attacks
+                                clean_path = os.path.normpath(rel_path).lstrip(os.sep)
+                                if '..' in clean_path.split(os.sep):
+                                    continue  # Skip malicious paths
+                                full_dest = os.path.join(memory_path, clean_path)
+                                if not os.path.realpath(full_dest).startswith(os.path.realpath(memory_path)):
+                                    continue  # Skip paths that escape the vault
+                                
+                                # SECURITY & DATA INTEGRITY:
+                                # Only overwrite system files (like template.json, .skills/*, _meta/*).
+                                # Never overwrite user-modifiable markdown files or readmes.
+                                is_system_file = (
+                                    clean_path == "template.json" or 
+                                    clean_path.startswith(".skills/") or 
+                                    clean_path.startswith("_meta/")
+                                )
+                                
+                                if is_system_file or not os.path.exists(full_dest):
+                                    os.makedirs(os.path.dirname(full_dest), exist_ok=True)
+                                    with open(full_dest, 'w', encoding='utf-8') as f:
+                                        f.write(content)
+                            fetched = True
+                except Exception:
+                    pass
+                    
+            if not fetched:
+                dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
+                for d in dirs:
+                    os.makedirs(os.path.join(memory_path, d), exist_ok=True)
             
     # 2. Initialize and Upgrade SQLite DB
     db_path = os.path.join(memory_path, 'memory.db')
@@ -456,7 +465,7 @@ def sync(memory, api_url, license_key, email, force):
         dest_skill = os.path.join(memory_path, ".skills", "llm-wiki")
         if os.path.exists(dest_skill):
             shutil.rmtree(dest_skill)
-        init_memory_structure(memory_path, license_key=license_key, email=email)
+        init_memory_structure(memory_path, license_key=license_key, email=email, force=True)
         click.echo("Done!")
     else:
         interactive_template_sync(memory_path, api_url, license_key, email)
@@ -534,7 +543,7 @@ def setup(local):
     update_settings("memory_write_mode", memory_write_mode, local=is_local)
 
     # 3. Create Memory Directory structure
-    init_memory_structure(memory_path, template_name=None, license_key=license_key, email=email)
+    init_memory_structure(memory_path, template_name=None, license_key=license_key, email=email, force=True)
     
     # 4. Interactive Template Choice
     interactive_template_sync(memory_path, api_url, license_key, email)
