@@ -512,7 +512,7 @@ def setup(local):
     is_local = local or click.confirm("Save configuration locally in the current project directory (instead of globally)?", default=False)
 
     # 1. Ask for Memory Path
-    default_memory = str(Path(os.getcwd()).parent / "my_memory")
+    default_memory = str(Path(os.getcwd()) / "my_memory")
     memory_path = click.prompt("Where should your local learning memory be stored?", default=default_memory)
     memory_path = os.path.abspath(os.path.expanduser(memory_path))
     
