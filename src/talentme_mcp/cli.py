@@ -10,11 +10,13 @@ from pathlib import Path
 from .server import create_server
 
 CONFIG_FILE = Path.home() / ".talentme_config.json"
+LOCAL_CONFIG_FILE = Path(".") / ".talentme_config.json"
 
-def save_config(memory_path, api_url, license_key, email=None):
+def save_config(memory_path, api_url, license_key, email=None, local=False):
     config = {}
-    if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, 'r') as f:
+    target_file = LOCAL_CONFIG_FILE if local else CONFIG_FILE
+    if target_file.exists():
+        with open(target_file, 'r') as f:
             try:
                 config = json.load(f)
             except Exception:
@@ -27,15 +29,19 @@ def save_config(memory_path, api_url, license_key, email=None):
         "email": email
     })
     
-    with open(CONFIG_FILE, 'w') as f:
+    with open(target_file, 'w') as f:
         json.dump(config, f, indent=2)
     # SECURITY: Restrict file permissions to current user only (600)
-    os.chmod(CONFIG_FILE, 0o600)
+    try:
+        os.chmod(target_file, 0o600)
+    except Exception:
+        pass
 
-def update_settings(key: str, value: str):
+def update_settings(key: str, value: str, local=False):
     config = {}
-    if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, 'r') as f:
+    target_file = LOCAL_CONFIG_FILE if local else CONFIG_FILE
+    if target_file.exists():
+        with open(target_file, 'r') as f:
             try:
                 config = json.load(f)
             except Exception:
@@ -46,16 +52,34 @@ def update_settings(key: str, value: str):
         
     config["settings"][key] = value
     
-    with open(CONFIG_FILE, 'w') as f:
+    with open(target_file, 'w') as f:
         json.dump(config, f, indent=2)
-    os.chmod(CONFIG_FILE, 0o600)
+    try:
+        os.chmod(target_file, 0o600)
+    except Exception:
+        pass
 
 def load_config():
-    # Priority: Environment variables -> Config file
+    # Priority: Environment variables -> Local Config file -> Global Config file
     config = {}
+    
+    # 1. Load from global config file
     if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, 'r') as f:
-            config = json.load(f)
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                config = json.load(f)
+        except Exception:
+            pass
+            
+    # 2. Override with local config file if exists in current working directory
+    local_path = Path(".") / ".talentme_config.json"
+    if local_path.exists():
+        try:
+            with open(local_path, 'r') as f:
+                local_cfg = json.load(f)
+                config.update(local_cfg)
+        except Exception:
+            pass
     
     # Override with env vars if present for production safety
     if os.environ.get("TALENTME_LICENSE_KEY"):
@@ -68,6 +92,29 @@ def load_config():
         config["email"] = os.environ.get("TALENTME_EMAIL")
         
     return config
+
+def copy_template_tree(src: str, dst: str):
+    """Recursively copy template files to dst without overwriting user-modified markdown files."""
+    for root, dirs, files in os.walk(src):
+        rel_dir = os.path.relpath(root, src)
+        target_dir = dst if rel_dir == "." else os.path.join(dst, rel_dir)
+        os.makedirs(target_dir, exist_ok=True)
+        
+        for file in files:
+            src_file = os.path.join(root, file)
+            dst_file = os.path.join(target_dir, file)
+            
+            # Determine if this file is a system configuration file or skill instruction
+            # System files (.skills/*, _meta/*, template.json) are safe to overwrite.
+            # Markdown pages and user readmes at the root are protected from overwriting.
+            is_system_file = (
+                file == "template.json" or 
+                ".skills" in rel_dir.split(os.sep) or 
+                "_meta" in rel_dir.split(os.sep)
+            )
+            
+            if is_system_file or not os.path.exists(dst_file):
+                shutil.copy2(src_file, dst_file)
 
 def init_memory_structure(memory_path: str, template_name: str = None, license_key: str = None, email: str = None):
     """Initialize the LLM Wiki structure using local template and upgrade DB schema."""
@@ -117,7 +164,7 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
             template_dir = os.path.join(cloud_env_path, "templates", "local_memory", "v1.0.0")
 
         if os.path.exists(template_dir):
-            shutil.copytree(template_dir, memory_path, dirs_exist_ok=True)
+            copy_template_tree(template_dir, memory_path)
         else:
             dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
             for d in dirs:
@@ -148,9 +195,20 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
                             full_dest = os.path.join(memory_path, clean_path)
                             if not os.path.realpath(full_dest).startswith(os.path.realpath(memory_path)):
                                 continue  # Skip paths that escape the vault
-                            os.makedirs(os.path.dirname(full_dest), exist_ok=True)
-                            with open(full_dest, 'w', encoding='utf-8') as f:
-                                f.write(content)
+                            
+                            # SECURITY & DATA INTEGRITY:
+                            # Only overwrite system files (like template.json, .skills/*, _meta/*).
+                            # Never overwrite user-modifiable markdown files or readmes.
+                            is_system_file = (
+                                clean_path == "template.json" or 
+                                clean_path.startswith(".skills/") or 
+                                clean_path.startswith("_meta/")
+                            )
+                            
+                            if is_system_file or not os.path.exists(full_dest):
+                                os.makedirs(os.path.dirname(full_dest), exist_ok=True)
+                                with open(full_dest, 'w', encoding='utf-8') as f:
+                                    f.write(content)
                         fetched = True
             except Exception:
                 pass
@@ -445,10 +503,14 @@ def start(init_memory, api_url, license_key, email):
     mcp_server.run()
 
 @main.command()
-def setup():
+@click.option('--local', is_flag=True, help='Save configuration locally in the current directory.')
+def setup(local):
     """Interactive setup to configure TalentMe and register with IDEs."""
     click.echo("=== TalentMe Onboarding & Setup ===")
     
+    # 0. Local vs Global config prompt
+    is_local = local or click.confirm("Save configuration locally in the current project directory (instead of globally)?", default=False)
+
     # 1. Ask for Memory Path
     default_memory = str(Path(os.getcwd()).parent / "my_memory")
     memory_path = click.prompt("Where should your local learning memory be stored?", default=default_memory)
@@ -468,8 +530,8 @@ def setup():
     memory_write_mode = click.prompt("Select a mode", type=click.Choice(['auto', 'semi-auto', 'manual']), default="semi-auto")
     
     # Save config
-    save_config(memory_path, api_url, license_key, email)
-    update_settings("memory_write_mode", memory_write_mode)
+    save_config(memory_path, api_url, license_key, email, local=is_local)
+    update_settings("memory_write_mode", memory_write_mode, local=is_local)
 
     # 3. Create Memory Directory structure
     init_memory_structure(memory_path, template_name=None, license_key=license_key, email=email)
