@@ -73,6 +73,10 @@ def setup_interview_tool(mcp: FastMCP, memory_path: str = None):
                 
             elif action in ["mark_prep", "mark_debrief"]:
                 field = "has_prep" if action == "mark_prep" else "has_debrief"
+                # SECURITY: Whitelist validation for SQL field name
+                allowed_fields = {"has_prep", "has_debrief"}
+                if field not in allowed_fields:
+                    return "Error: Invalid field name."
                 if interview_id:
                      cursor.execute(f"UPDATE interviews SET {field} = 1 WHERE id = ?", (interview_id,))
                 else:

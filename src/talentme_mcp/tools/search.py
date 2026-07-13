@@ -88,7 +88,7 @@ def setup_search_tool(mcp: FastMCP, api_url: str, license_key: str, memory_path:
                                 path = os.path.join(root, file)
                                 with open(path, 'r', encoding='utf-8') as f:
                                     content = f.read()
-                                    if re.search(query, content, re.IGNORECASE):
+                                    if re.search(re.escape(query), content, re.IGNORECASE):
                                         rel_path = os.path.relpath(path, memory_path)
                                         snippet = _extract_snippet(content, query)
                                         local_results.append({

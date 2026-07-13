@@ -28,4 +28,6 @@ dist/
 # Scratch and Test
 test_memory_scratch/
 test_venv/
-test_init.py
+test_workspace/
+scratch/
+test_*.py

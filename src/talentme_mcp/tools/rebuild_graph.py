@@ -66,6 +66,13 @@ def setup_rebuild_graph_tool(mcp: FastMCP, memory_path: str = None):
         target = target_dir if target_dir else memory_path
         if not target or not os.path.isdir(target):
             return f"Error: Invalid or unconfigured target directory: {target}"
+        
+        # SECURITY: Ensure target is within allowed memory vault
+        if memory_path:
+            real_target = os.path.realpath(target)
+            real_allowed = os.path.realpath(memory_path)
+            if not real_target.startswith(real_allowed):
+                return "Error: Security violation. target_dir must be within the memory vault."
             
         start_time = time.time()
         term_to_info = {}

@@ -111,7 +111,13 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
                                 rel_path = rel_path[7:]
                             elif rel_path.startswith("v1.0.0\\"):
                                 rel_path = rel_path[7:]
-                            full_dest = os.path.join(memory_path, rel_path)
+                            # SECURITY: Sanitize path to prevent traversal attacks
+                            clean_path = os.path.normpath(rel_path).lstrip(os.sep)
+                            if '..' in clean_path.split(os.sep):
+                                continue  # Skip malicious paths
+                            full_dest = os.path.join(memory_path, clean_path)
+                            if not os.path.realpath(full_dest).startswith(os.path.realpath(memory_path)):
+                                continue  # Skip paths that escape the vault
                             os.makedirs(os.path.dirname(full_dest), exist_ok=True)
                             with open(full_dest, 'w', encoding='utf-8') as f:
                                 f.write(content)
@@ -150,8 +156,10 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
         )
     ''')
     
-    if final_license:
-        cursor.execute("INSERT OR REPLACE INTO user_config (key, value) VALUES ('license_key', ?)", (final_license,))
+    # SECURITY: Do NOT store license_key in memory.db (CWE-312).
+    # License key is only stored in ~/.talentme_config.json (mode 0o600).
+    # Remove any previously stored license_key from older versions.
+    cursor.execute("DELETE FROM user_config WHERE key = 'license_key'")
     if final_email:
         cursor.execute("INSERT OR REPLACE INTO user_config (key, value) VALUES ('email', ?)", (final_email,))
         
@@ -184,7 +192,13 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
                 # If template already exists, we should probably warn or handle it in the caller
                 # For simplicity here, we write files (overwrite individual files if they changed)
                 for rel_path, content in files.items():
-                    full_dest = os.path.join(dest_skill, rel_path)
+                    # SECURITY: Sanitize path to prevent traversal attacks
+                    clean_path = os.path.normpath(rel_path).lstrip(os.sep)
+                    if '..' in clean_path.split(os.sep):
+                        continue
+                    full_dest = os.path.join(dest_skill, clean_path)
+                    if not os.path.realpath(full_dest).startswith(os.path.realpath(dest_skill)):
+                        continue
                     os.makedirs(os.path.dirname(full_dest), exist_ok=True)
                     with open(full_dest, 'w', encoding='utf-8') as f:
                         f.write(content)
@@ -373,8 +387,12 @@ def start(init_memory, api_url, license_key, email):
     # Priority: Flag > Config > Default
     final_memory = init_memory or config.get("memory_path")
     final_api = api_url or config.get("api_url", "https://api-talentme.airsota.com")
-    final_key = license_key or config.get("license_key", "test-key")
-    final_email = email or config.get("email", "test@talentme.com")
+    final_key = license_key or config.get("license_key")
+    final_email = email or config.get("email")
+    
+    if not final_key:
+        click.echo("Error: No license key configured. Please run 'talentme setup' first or set TALENTME_LICENSE_KEY.", err=True)
+        return
 
     if not final_memory:
         click.echo("Error: No memory path provided. Please run 'setup' or use --init-memory.")

@@ -56,8 +56,10 @@ def setup_learn_tool(mcp: FastMCP, api_url: str, license_key: str, memory_path: 
                     cloud_content = "\n\n---\n\n".join(cleaned_chunks)
                     
                     # 4. Append Dynamic Watermark (4th Line of Defense)
-                    lic_suffix = license_key[:8] if license_key else "unknown"
-                    watermark = f"\n\n---\n*本笔记为 TalentMe (https://talentme.airsota.com) 专属定制编译 (License: tm-{lic_suffix})。*"
+                    # SECURITY: Use hash digest instead of key prefix to avoid CWE-200 exposure
+                    import hashlib
+                    lic_hash = hashlib.sha256((license_key or "unknown").encode()).hexdigest()[:8]
+                    watermark = f"\n\n---\n*本笔记为 TalentMe (https://talentme.airsota.com) 专属定制编译 (License: tm-{lic_hash})。*"
                     cloud_content += watermark
                 else:
                     cloud_content = f"Error: No content found in cloud for '{cloud_doc_id}'."
