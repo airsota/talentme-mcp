@@ -118,8 +118,8 @@ def copy_template_tree(src: str, dst: str):
 
 def init_memory_structure(memory_path: str, template_name: str = None, license_key: str = None, email: str = None, force: bool = False):
     """Initialize the LLM Wiki structure using local template and upgrade DB schema."""
-    # Check if the memory path is already bootstrapped (DB + core concepts directory exist)
-    is_bootstrap_done = os.path.exists(os.path.join(memory_path, 'memory.db')) and os.path.exists(os.path.join(memory_path, 'concepts'))
+    # Check if the memory path is already bootstrapped (DB + template.json exist)
+    is_bootstrap_done = os.path.exists(os.path.join(memory_path, 'memory.db')) and os.path.exists(os.path.join(memory_path, 'template.json'))
     
     # Skip download/copying if bootstrap is already completed and force is False
     skip_download = is_bootstrap_done and not force and not template_name
