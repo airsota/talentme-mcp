@@ -83,7 +83,39 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
     final_email = email or getattr(sys, '_talentme_email', None) or config.get("email")
     
     if cloud_env_path:
-        template_dir = os.path.join(cloud_env_path, "templates", "local_memory", "v1.0.0")
+        base_template_dir = os.path.join(cloud_env_path, "templates", "local_memory")
+        template_dir = None
+        if os.path.exists(base_template_dir):
+            try:
+                # 1. Try to read active_version from manifest.json at the template root
+                manifest_path = os.path.join(base_template_dir, "manifest.json")
+                active_version = None
+                if os.path.exists(manifest_path):
+                    try:
+                        with open(manifest_path, "r", encoding="utf-8") as f:
+                            manifest = json.load(f)
+                            active_version = manifest.get("active_version")
+                    except Exception:
+                        pass
+                
+                # 2. If manifest specifies a valid version subdirectory, use it
+                if active_version and os.path.isdir(os.path.join(base_template_dir, active_version)):
+                    template_dir = os.path.join(base_template_dir, active_version)
+                else:
+                    # 3. Fallback: Dynamic SemVer Sorting
+                    subdirs = [d for d in os.listdir(base_template_dir) if os.path.isdir(os.path.join(base_template_dir, d)) and d.startswith("v") and not d.startswith(".")]
+                    if subdirs:
+                        def parse_version(v_str):
+                            parts = v_str.strip("v").split(".")
+                            return [int(p) for p in parts if p.isdigit()]
+                        subdirs.sort(key=parse_version, reverse=True)
+                        template_dir = os.path.join(base_template_dir, subdirs[0])
+            except Exception:
+                pass
+                
+        if not template_dir or not os.path.exists(template_dir):
+            template_dir = os.path.join(cloud_env_path, "templates", "local_memory", "v1.0.0")
+
         if os.path.exists(template_dir):
             shutil.copytree(template_dir, memory_path, dirs_exist_ok=True)
         else:
@@ -106,11 +138,9 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
                     files = resp.json().get("files", {})
                     if files:
                         for rel_path, content in files.items():
-                            # Strip the v1.0.0 prefix if returned
-                            if rel_path.startswith("v1.0.0/"):
-                                rel_path = rel_path[7:]
-                            elif rel_path.startswith("v1.0.0\\"):
-                                rel_path = rel_path[7:]
+                            # Strip any version prefix dynamically if returned (e.g. v1.0.0/ or v1.0.1/)
+                            import re
+                            rel_path = re.sub(r"^v\d+\.\d+\.\d+[/\\]", "", rel_path)
                             # SECURITY: Sanitize path to prevent traversal attacks
                             clean_path = os.path.normpath(rel_path).lstrip(os.sep)
                             if '..' in clean_path.split(os.sep):
