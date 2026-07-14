@@ -130,6 +130,23 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
     
     if skip_download:
         click.echo(f"Memory structure at {memory_path} already initialized, skipping template sync.", err=True)
+    elif not force and not template_name:
+        # Silently bootstrap minimal local folders and DB for start command without hitting network
+        click.echo(f"Bootstrapping minimal local memory structure at {memory_path}...", err=True)
+        dirs = ["concepts", "entities", "skills", "references", "synthesis", "journal", "projects", "_raw", "_meta", ".skills"]
+        for d in dirs:
+            os.makedirs(os.path.join(memory_path, d), exist_ok=True)
+        # Create a placeholder template.json to skip sync in subsequent starts
+        placeholder_template = {
+            "version": "1.0.0",
+            "name": "Minimal Memory Skeleton",
+            "description": "Auto-generated minimal skeleton on server start."
+        }
+        try:
+            with open(os.path.join(memory_path, "template.json"), "w", encoding="utf-8") as f:
+                json.dump(placeholder_template, f, indent=2)
+        except Exception:
+            pass
     else:
         click.echo(f"Initializing/Syncing Memory at {memory_path}...", err=True)
         
