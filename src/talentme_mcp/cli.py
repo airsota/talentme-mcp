@@ -118,6 +118,10 @@ def copy_template_tree(src: str, dst: str):
 
 def init_memory_structure(memory_path: str, template_name: str = None, license_key: str = None, email: str = None, force: bool = False):
     """Initialize the LLM Wiki structure using local template and upgrade DB schema."""
+    config = load_config()
+    final_license = license_key or getattr(sys, '_talentme_license_key', None) or config.get("license_key")
+    final_email = email or getattr(sys, '_talentme_email', None) or config.get("email")
+
     # Check if the memory path is already bootstrapped (DB + template.json exist)
     is_bootstrap_done = os.path.exists(os.path.join(memory_path, 'memory.db')) and os.path.exists(os.path.join(memory_path, 'template.json'))
     
@@ -133,10 +137,6 @@ def init_memory_structure(memory_path: str, template_name: str = None, license_k
         # SECURITY: Never hardcode absolute server paths in a public MCP package.
         # Use environment variable for local testing, fallback to basic dirs for public clients.
         cloud_env_path = os.environ.get("TALENTME_CLOUD_PATH")
-        
-        config = load_config()
-        final_license = license_key or getattr(sys, '_talentme_license_key', None) or config.get("license_key")
-        final_email = email or getattr(sys, '_talentme_email', None) or config.get("email")
         
         if cloud_env_path:
             base_template_dir = os.path.join(cloud_env_path, "templates", "local_memory")
