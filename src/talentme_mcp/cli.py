@@ -10,13 +10,11 @@ from pathlib import Path
 from .server import create_server
 
 CONFIG_FILE = Path.home() / ".talentme_config.json"
-LOCAL_CONFIG_FILE = Path(".") / ".talentme_config.json"
 
-def save_config(memory_path, api_url, license_key, email=None, local=False):
+def save_config(memory_path, api_url, license_key, email=None):
     config = {}
-    target_file = LOCAL_CONFIG_FILE if local else CONFIG_FILE
-    if target_file.exists():
-        with open(target_file, 'r') as f:
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
             try:
                 config = json.load(f)
             except Exception:
@@ -29,19 +27,18 @@ def save_config(memory_path, api_url, license_key, email=None, local=False):
         "email": email
     })
     
-    with open(target_file, 'w') as f:
+    with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=2)
     # SECURITY: Restrict file permissions to current user only (600)
     try:
-        os.chmod(target_file, 0o600)
+        os.chmod(CONFIG_FILE, 0o600)
     except Exception:
         pass
 
-def update_settings(key: str, value: str, local=False):
+def update_settings(key: str, value: str):
     config = {}
-    target_file = LOCAL_CONFIG_FILE if local else CONFIG_FILE
-    if target_file.exists():
-        with open(target_file, 'r') as f:
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
             try:
                 config = json.load(f)
             except Exception:
@@ -52,32 +49,20 @@ def update_settings(key: str, value: str, local=False):
         
     config["settings"][key] = value
     
-    with open(target_file, 'w') as f:
+    with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=2)
     try:
-        os.chmod(target_file, 0o600)
+        os.chmod(CONFIG_FILE, 0o600)
     except Exception:
         pass
 
 def load_config():
-    # Priority: Environment variables -> Local Config file -> Global Config file
+    # Priority: Environment variables -> Config file
     config = {}
-    
-    # 1. Load from global config file
     if CONFIG_FILE.exists():
         try:
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-        except Exception:
-            pass
-            
-    # 2. Override with local config file if exists in current working directory
-    local_path = Path(".") / ".talentme_config.json"
-    if local_path.exists():
-        try:
-            with open(local_path, 'r') as f:
-                local_cfg = json.load(f)
-                config.update(local_cfg)
         except Exception:
             pass
     
@@ -529,13 +514,9 @@ def start(init_memory, api_url, license_key, email):
     mcp_server.run()
 
 @main.command()
-@click.option('--local', is_flag=True, help='Save configuration locally in the current directory.')
-def setup(local):
+def setup():
     """Interactive setup to configure TalentMe and register with IDEs."""
     click.echo("=== TalentMe Onboarding & Setup ===")
-    
-    # 0. Local vs Global config prompt
-    is_local = local or click.confirm("Save configuration locally in the current project directory (instead of globally)?", default=False)
 
     # 1. Ask for Memory Path
     default_memory = str(Path(os.getcwd()) / "my_memory")
@@ -556,8 +537,8 @@ def setup(local):
     memory_write_mode = click.prompt("Select a mode", type=click.Choice(['auto', 'semi-auto', 'manual']), default="semi-auto")
     
     # Save config
-    save_config(memory_path, api_url, license_key, email, local=is_local)
-    update_settings("memory_write_mode", memory_write_mode, local=is_local)
+    save_config(memory_path, api_url, license_key, email)
+    update_settings("memory_write_mode", memory_write_mode)
 
     # 3. Create Memory Directory structure
     init_memory_structure(memory_path, template_name=None, license_key=license_key, email=email, force=True)
