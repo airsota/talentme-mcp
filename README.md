@@ -34,7 +34,7 @@
 
 ## 🌟 What is TalentMe MCP?
 
-**TalentMe MCP** is a **Local-First** professional learning memory system designed for Machine Learning and Software Engineering interview preparation. Acting as a bridge between your local knowledge base and your AI assistant (Cursor, Claude Desktop, Trae, Antigravity, Kiro, Codex), it implements the [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern to track your learning journey, automate mock interviews, and structure your career growth.
+**TalentMe MCP** is a **Local-First** professional learning memory system designed for Machine Learning and Software Engineering interview preparation. Acting as a bridge between your local knowledge base and your AI assistant (Cursor, Claude Desktop, Trae, Antigravity, Kiro, Codex), it implements the [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern to track your learning journey, automate mock interviews, and structure your career growth. Learn more and manage your account at [TalentMe](https://talentme.airsota.com).
 
 With TalentMe, your AI agent gains **long-term context** about your projects, skills, and areas of growth, enabling hyper-personalized coaching without leaking your notes to the public internet.
 
@@ -43,7 +43,7 @@ With TalentMe, your AI agent gains **long-term context** about your projects, sk
 ## 🚀 Key Features
 
 *   **Local-First Privacy**: Your notes, practice logs, and templates are stored locally in Markdown and an Obsidian-compatible structure.
-*   **Dual-Source Intelligence**: Connects to the TalentMe Cloud API to dynamically fetch specialized interview prompt steering files and expert evaluation workflows.
+*   **Dual-Source Intelligence**: Connects to the [TalentMe Cloud Platform](https://talentme.airsota.com) to dynamically fetch specialized interview prompt steering files and expert evaluation workflows.
 *   **Structured Vault & SQLite Engine**: Combines standard folders (`concepts/`, `journal/`, `resumes/`) with a local SQLite database for spaced repetition (Ebbinghaus curve) and mastery tracking.
 *   **Zero-Sync Fast Startup**: Starting or refreshing the MCP server is 100% local and instantaneous, bypassing cloud requests to prevent delays.
 *   **Auto IDE Registration**: One-click configuration registers the server with Cursor, Claude Desktop, Trae, Antigravity, Kiro, and Codex.
@@ -114,8 +114,11 @@ talentme setup
 ```
 *Follow the interactive prompt to set your memory directory, email, license key, and behavior configurations.*
 
+> [!TIP]
+> **Need a License Key?** Sign up on the [TalentMe](https://talentme.airsota.com) official website to generate your key, access premium knowledge bases, and activate your personal career vault.
+
 ### Step 3: Use with Your AI Assistant
-Open your memory directory in Cursor/Claude/Antigravity and start chatting!
+Open your memory directory in Cursor/Claude/Antigravity and start building you own knowledge base!
 
 > 💬 **Example Prompt**:
 > *"Review my notes on Transformer self-attention. Ask me 3 hard questions about computational complexity, then log my responses to today's journal."*
