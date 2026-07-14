@@ -385,7 +385,9 @@ def update():
         # Now ask if they want to sync templates
         config = load_config()
         if config.get("memory_path") and click.confirm("\nWould you like to sync/update cloud templates as well?"):
-            interactive_template_sync(config["memory_path"], config["api_url"], config["license_key"], config.get("email"))
+            api_url = config.get("api_url") or "https://api-talentme.airsota.com"
+            license_key = config.get("license_key")
+            interactive_template_sync(config.get("memory_path"), api_url, license_key, config.get("email"))
             
         click.echo("\n[IMPORTANT] Please restart your MCP server/IDE to apply new instructions.")
     except Exception as e:
