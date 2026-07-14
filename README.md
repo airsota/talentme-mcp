@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/airsota/talentme-mcp/main/docs/assets/talentme-logo.png" alt="TalentMe Logo" width="55%" onerror="this.src='https://img.shields.io/badge/TalentMe-MCP--Server-blue?style=for-the-badge&logo=appveyor'; this.width='30%';">
+  <img src="docs/assets/talentme-logo.svg" alt="TalentMe Logo" width="320">
 </p>
+
+
 
 <p align="center">
   <strong>A Local-First Personal Career Memory & ML Interview Coach for AI Assistants</strong>
@@ -32,7 +34,7 @@
 
 ## 🌟 What is TalentMe MCP?
 
-**TalentMe MCP** is a **Local-First** professional learning memory system designed for Machine Learning and Software Engineering interview preparation. Acting as a bridge between your local knowledge base and your AI assistant (Cursor, Claude Desktop, Trae, Antigravity, Kiro, Codex), it implements the [LLM Wiki](https://github.com/karpathy/llm-wiki) pattern to track your learning journey, automate mock interviews, and structure your career growth.
+**TalentMe MCP** is a **Local-First** professional learning memory system designed for Machine Learning and Software Engineering interview preparation. Acting as a bridge between your local knowledge base and your AI assistant (Cursor, Claude Desktop, Trae, Antigravity, Kiro, Codex), it implements the [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern to track your learning journey, automate mock interviews, and structure your career growth.
 
 With TalentMe, your AI agent gains **long-term context** about your projects, skills, and areas of growth, enabling hyper-personalized coaching without leaking your notes to the public internet.
 
@@ -146,8 +148,4 @@ If the automatic IDE registration is skipped, you can manually register the MCP 
 
 MIT License. See [LICENSE](LICENSE) for details.
 
----
 
-## 📈 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=airsota/talentme-mcp&type=Date)](https://star-history.com/#airsota/talentme-mcp&Date)
