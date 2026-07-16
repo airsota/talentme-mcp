@@ -526,8 +526,8 @@ def setup():
     memory_path = os.path.abspath(os.path.expanduser(memory_path))
     
     # 2. Ask for API details
-    email = click.prompt("Your Account Email", default="test@talentme.com")
-    license_key = click.prompt("Your License Key", default="test-key")
+    email = click.prompt("Your Account Email (registered at https://talentme.airsota.com)")
+    license_key = click.prompt("Your License Key")
     api_url = "https://api-talentme.airsota.com"
     
     # 3. Ask for Memory Write Mode
