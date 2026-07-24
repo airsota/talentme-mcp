@@ -621,7 +621,7 @@ def setup():
                 config_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(config_path, 'w') as f:
                     json.dump(data, f, indent=2)
-                click.echo(f"✅ Successfully updated {ide_name} configuration!")
+                click.echo(f"✅ Successfully updated {ide_name} configuration ({config_path})!")
                 configured_any = True
             except Exception as e:
                 click.echo(f"❌ Failed to update {ide_name} config: {e}")
