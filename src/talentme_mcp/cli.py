@@ -567,6 +567,7 @@ def setup():
     
     # Define possible IDE config paths
     ide_paths = {
+        "Claude Code": home / ".claude.json",
         "Claude Desktop": None,
         "Cursor": None,
         "Windsurf": None,
@@ -575,6 +576,7 @@ def setup():
     }
     
     if system == "Darwin": # Mac
+        ide_paths["Claude Code"] = home / ".claude.json"
         ide_paths["Claude Desktop"] = home / "Library/Application Support/Claude/claude_desktop_config.json"
         ide_paths["Cursor"] = home / "Library/Application Support/Cursor/User/globalStorage/mcpServers.json"
         ide_paths["Windsurf"] = home / ".codeium/windsurf/mcp_config.json"
@@ -583,6 +585,7 @@ def setup():
     elif system == "Windows":
         appdata = Path(os.environ.get("APPDATA", ""))
         userprofile = Path(os.environ.get("USERPROFILE", ""))
+        ide_paths["Claude Code"] = userprofile / ".claude.json"
         ide_paths["Claude Desktop"] = appdata / "Claude/claude_desktop_config.json"
         ide_paths["Cursor"] = appdata / "Cursor/User/globalStorage/mcpServers.json"
         ide_paths["Windsurf"] = userprofile / ".codeium/windsurf/mcp_config.json"
@@ -590,6 +593,7 @@ def setup():
         ide_paths["Antigravity"] = userprofile / ".gemini/config/mcp_config.json"
     elif system == "Linux":
         config_home = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
+        ide_paths["Claude Code"] = home / ".claude.json"
         ide_paths["Claude Desktop"] = config_home / "Claude/claude_desktop_config.json"
         ide_paths["Cursor"] = config_home / "Cursor/User/globalStorage/mcpServers.json"
         ide_paths["Windsurf"] = home / ".codeium/windsurf/mcp_config.json"
@@ -751,6 +755,7 @@ alwaysApply: true
     
     click.echo("\n📌 Common MCP Configuration Paths:")
     if system == "Darwin":
+        click.echo("  - Claude Code    : ~/.claude.json")
         click.echo("  - Claude Desktop : ~/Library/Application Support/Claude/claude_desktop_config.json")
         click.echo("  - Cursor         : ~/Library/Application Support/Cursor/User/globalStorage/mcpServers.json")
         click.echo("  - Windsurf       : ~/.codeium/windsurf/mcp_config.json")
@@ -758,6 +763,7 @@ alwaysApply: true
         click.echo("  - Antigravity    : ~/.gemini/config/mcp_config.json")
         click.echo("  - Roo Code/Cline : ~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json")
     elif system == "Windows":
+        click.echo("  - Claude Code    : %USERPROFILE%\\.claude.json")
         click.echo("  - Claude Desktop : %APPDATA%\\Claude\\claude_desktop_config.json")
         click.echo("  - Cursor         : %APPDATA%\\Cursor\\User\\globalStorage\\mcpServers.json")
         click.echo("  - Windsurf       : %USERPROFILE%\\.codeium\\windsurf\\mcp_config.json")
@@ -765,6 +771,7 @@ alwaysApply: true
         click.echo("  - Antigravity    : %USERPROFILE%\\.gemini\\config\\mcp_config.json")
         click.echo("  - Roo Code/Cline : %APPDATA%\\Code\\User\\globalStorage\\saoudrizwan.claude-dev\\settings\\cline_mcp_settings.json")
     elif system == "Linux":
+        click.echo("  - Claude Code    : ~/.claude.json")
         click.echo("  - Claude Desktop : ~/.config/Claude/claude_desktop_config.json")
         click.echo("  - Cursor         : ~/.config/Cursor/User/globalStorage/mcpServers.json")
         click.echo("  - Windsurf       : ~/.codeium/windsurf/mcp_config.json")

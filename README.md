@@ -141,6 +141,7 @@ If the automatic IDE registration is skipped, you can manually register the MCP 
 ```
 
 ### Configuration Locations
+*   **Claude Code**: `~/.claude.json`
 *   **Cursor**: `~/Library/Application Support/Cursor/User/globalStorage/mcpServers.json`
 *   **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 *   **Antigravity / Gemini IDE**: `~/.gemini/config/mcp_config.json`
